@@ -25,6 +25,7 @@ import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Clock from "effect/Clock";
+import * as Array from "effect/Array";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
@@ -218,6 +219,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   readonly ref: Option.Option<string>;
   readonly concurrency: Option.Option<number>;
   readonly timeout: Option.Option<number>;
+  readonly testBatchSize: Option.Option<number>;
 }) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -239,6 +241,11 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const timeoutSeconds = Option.getOrElse(
     yield* override("timeout", input.timeout, "CHECK_CHANGED_TIMEOUT"),
     () => 900,
+  );
+  const testBatchSize = yield* override(
+    "test-batch-size",
+    input.testBatchSize,
+    "CHECK_CHANGED_TEST_BATCH_SIZE",
   );
 
   const lines = (...args: Array<string>) => gitLines(root, args);
@@ -262,7 +269,9 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const inputKey = Effect.gen(function* () {
     const hash = NodeCrypto.createHash("sha256");
     // CI changes test behavior (vite.config.ts rejects .only under CI).
-    hash.update(`${process.version}\0${base}\0${ci}\0`);
+    hash.update(
+      `${process.version}\0${base}\0${ci}\0${Option.getOrElse(testBatchSize, () => 0)}\0`,
+    );
     hash.update(
       yield* git(root, [
         "diff",
@@ -337,6 +346,11 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   // It reads files other than the ones beside it, so no changed file selects it.
   if (affected.includes("t3")) tests.add("apps/server/src/provider/AgentContextBudget.test.ts");
   const { vitestTests, nodeTests } = splitTests(tests);
+  // Bound each Chromium session for large localization diffs without dropping or retrying tests.
+  const testBatches = Option.match(testBatchSize, {
+    onNone: () => [vitestTests],
+    onSome: (size) => Array.chunksOf(vitestTests, size),
+  }).filter((batch) => batch.length > 0);
 
   // React Compiler coverage compiles every client source file, so run only the
   // changed files' cases, in one extra step: a -t filter in the main test step
@@ -507,19 +521,15 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         ]
       : []),
     // From the repo root, the root vite.config.ts hands each file to its package's config.
-    ...(vitestTests.length > 0
-      ? [
-          {
-            ...command(`test (${vitestTests.length} files)`, [
-              "test",
-              "run",
-              "--passWithNoTests",
-              ...vitestTests,
-            ]),
-            serial: true,
-          },
-        ]
-      : []),
+    ...testBatches.map((batch, index) => ({
+      ...command(`test ${index + 1}/${testBatches.length} (${batch.length} files)`, [
+        "test",
+        "run",
+        "--passWithNoTests",
+        ...batch,
+      ]),
+      serial: true,
+    })),
     ...(nodeTests.length > 0
       ? [
           command(`node --test (${nodeTests.length} files)`, [
@@ -601,6 +611,12 @@ export const checkChangedCommand = Command.make(
     timeout: Flag.Int("timeout").pipe(
       Flag.withDescription(
         "Seconds before a step is killed; also CHECK_CHANGED_TIMEOUT. Defaults to 900.",
+      ),
+      Flag.optional,
+    ),
+    testBatchSize: Flag.Int("test-batch-size").pipe(
+      Flag.withDescription(
+        "Maximum test files per fresh Vitest process; also CHECK_CHANGED_TEST_BATCH_SIZE. Defaults to one process for all selected tests.",
       ),
       Flag.optional,
     ),

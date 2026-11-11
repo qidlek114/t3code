@@ -17,6 +17,7 @@ jobs:
     timeout-minutes: 40
     env:
       VITEST_MAX_WORKERS: "2"
+      CHECK_CHANGED_TEST_BATCH_SIZE: "24"
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
