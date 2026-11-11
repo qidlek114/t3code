@@ -20,6 +20,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            /*
+            !/.repos/
+            !/apps/mobile/modules/t3-terminal/Vendor/**/*.a
+          sparse-checkout-cone-mode: false
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-ci-deps

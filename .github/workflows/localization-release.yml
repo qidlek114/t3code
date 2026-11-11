@@ -22,6 +22,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            /*
+            !/.repos/
+            !/apps/mobile/modules/t3-terminal/Vendor/**/*.a
+          sparse-checkout-cone-mode: false
           fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup-ci-deps
@@ -58,6 +63,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            /*
+            !/.repos/
+            !/apps/mobile/modules/t3-terminal/Vendor/**/*.a
+          sparse-checkout-cone-mode: false
           persist-credentials: false
       - uses: ./.github/actions/setup-ci-deps
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87

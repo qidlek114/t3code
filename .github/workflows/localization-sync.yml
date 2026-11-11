@@ -24,6 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          sparse-checkout: |
+            /*
+            !/.repos/
+            !/apps/mobile/modules/t3-terminal/Vendor/**/*.a
+          sparse-checkout-cone-mode: false
           ref: localization
           fetch-depth: 0
       - name: Merge the latest official stable release into a review branch
