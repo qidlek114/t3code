@@ -314,6 +314,7 @@ overrides:
   '@clerk/electron': 0.1.10
   '@clerk/electron-passkeys': 0.0.3
   '@clerk/expo': 4.15.1
+  '@clerk/localizations': 4.24.6
   '@clerk/react': 6.18.6
   '@clerk/shared': 4.44.1
   '@effect/atom-react': 4.1.2
@@ -1029,6 +1030,9 @@ importers:
       '@clerk/electron':
         specifier: 0.1.10
         version: 0.1.10(@clerk/electron-passkeys@0.0.3)(electron-store@8.2.0)(electron@44.10.1(supports-color@8.1.1))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@clerk/localizations':
+        specifier: 4.24.6
+        version: 4.24.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@clerk/react':
         specifier: 6.18.6
         version: 6.18.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -3441,6 +3445,10 @@ packages:
         optional: true
       react-dom:
         optional: true
+
+  '@clerk/localizations@4.24.6':
+    resolution: {integrity: sha512-U9WKVMI3a2K8jCKKE0iVECV43haDAyQ/vNFWx61Ry5JZhh6icceujDe4RAfjp1pqEA5JJ46xGdO5XrjXu5sCpg==}
+    engines: {node: '>=20.9.0'}
 
   '@clerk/react@6.18.6':
     resolution: {integrity: sha512-vNsg5smbANI7Bf8W+2e6p4hR3LlMZvSKT+lih8tVlBZVAQzkoVCgmD7EmiEwMqLz23y8Z0klDBtejQlcpn9Deg==}
@@ -13610,6 +13618,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
       - typescript
+
+  '@clerk/localizations@4.24.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@clerk/shared': 4.44.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+    transitivePeerDependencies:
+      - react
+      - react-dom
 
   '@clerk/react@6.18.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:

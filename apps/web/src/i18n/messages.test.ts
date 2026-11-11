@@ -4,6 +4,35 @@ import { welcomePrivacyClause } from "./welcomePrivacyClause";
 import { describe, expect, it } from "vite-plus/test";
 
 import { WEB_MESSAGES, translateWebMessage, translateWebSource } from "./messages";
+import { clerkLocalizations } from "../components/clerk/clerkLocalizations";
+
+function flattenClerkMessages(value: unknown, prefix = ""): Array<readonly [string, string]> {
+  if (typeof value === "string") return [[prefix, value]];
+  if (!value || typeof value !== "object") return [];
+  return Object.entries(value).flatMap(([key, child]) =>
+    flattenClerkMessages(child, prefix ? `${prefix}.${key}` : key),
+  );
+}
+
+it.each(["zh-CN", "zh-TW"] as const)(
+  "keeps Clerk account flows complete in %s and preserves interpolation identifiers",
+  (locale) => {
+    const localized = new Map(flattenClerkMessages(clerkLocalizations[locale]));
+    const variables = (text: string) =>
+      [...new Set([...text.matchAll(/\{\{\s*(\w+)/g)].map((match) => match[1]))].sort();
+    for (const [key, source] of flattenClerkMessages(clerkLocalizations.en)) {
+      if (
+        !/^(signIn|signUp|reverification|taskResetPassword|taskSetupMfa|userProfile|unstable__errors|actionBlocked)\./.test(
+          key,
+        )
+      )
+        continue;
+      const target = localized.get(key);
+      expect(target, key).toEqual(expect.any(String));
+      expect(variables(target!), key).toEqual(variables(source));
+    }
+  },
+);
 
 describe("translateWebMessage", () => {
   it("localizes both privacy clauses selected by the onboarding telemetry policy", () => {

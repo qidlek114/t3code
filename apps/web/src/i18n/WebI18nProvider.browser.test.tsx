@@ -19,6 +19,7 @@ import { useI18n } from "./WebI18nContext";
 import { WebI18nProvider } from "./WebI18nProvider";
 import { readWebI18n } from "./readWebI18n";
 import { LanguageSelect } from "../components/LanguageSelect";
+import { useClerkLocalization } from "../components/clerk/useClerkLocalization";
 
 function setup({
   appLocale = "en",
@@ -79,11 +80,19 @@ function LocaleControls() {
   );
 }
 
+function CloudLocale() {
+  const localization = useClerkLocalization();
+  return <output aria-label="Cloud locale">{localization.locale}</output>;
+}
+
 function provider() {
   return (
-    <WebI18nProvider>
-      <LocaleControls />
-    </WebI18nProvider>
+    <>
+      <CloudLocale />
+      <WebI18nProvider>
+        <LocaleControls />
+      </WebI18nProvider>
+    </>
   );
 }
 
@@ -122,15 +131,18 @@ it("updates when the runtime language changes while following the system", async
   using state = setup({ appLocale: "system" });
   await using screen = await render(provider());
   expect(screen.getByRole("status", { name: "Current locale" }).element().textContent).toBe("en");
+  expect(screen.getByRole("status", { name: "Cloud locale" }).element().textContent).toBe("en-US");
   await act(() => state.changeLanguages(["zh-Hans-CN"]));
   expect(screen.getByRole("status", { name: "Current locale" }).element().textContent).toBe(
     "zh-CN",
   );
   expect(screen.container.innerText).toContain("返回");
   expect(document.documentElement.lang).toBe("zh-CN");
+  expect(screen.getByRole("status", { name: "Cloud locale" }).element().textContent).toBe("zh-CN");
   await act(() => state.changeLanguages(["zh-Hant-HK"]));
   expect(screen.getByRole("heading").element().textContent).toBe("設定");
   expect(document.documentElement.lang).toBe("zh-TW");
+  expect(screen.getByRole("status", { name: "Cloud locale" }).element().textContent).toBe("zh-TW");
 });
 
 it.each([
@@ -147,6 +159,9 @@ it.each([
   await screen.rerender(provider());
   expect(screen.getByRole("heading").element().textContent).toBe(heading);
   expect(document.documentElement.lang).toBe(locale);
+  expect(screen.getByRole("status", { name: "Cloud locale" }).element().textContent).toBe(
+    locale === "en" ? "en-US" : locale,
+  );
 });
 
 it("keeps an explicit locale when repeated runtime language events arrive", async () => {

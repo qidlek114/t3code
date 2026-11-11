@@ -85,6 +85,8 @@ vp run dev --no-seed --home-dir /absolute/path/to/isolated-t3-home
 
 两种构建工作流都会把官方 `.env.example` 复制为一次性构建目录的 `.env`。其中只有官方明确公开的 Clerk publishable key、JWT template 名称、CLI OAuth client ID 和 relay URL，不使用官方后台私钥，也不另建云服务。配置必须在 web、server 和 desktop 编译之前载入。
 
+应用内的 Clerk 登录和账号界面使用 `@clerk/localizations` 的三种语言包，与主界面共享语言偏好和系统语言订阅。`clerkLocalizations.ts` 补充当前语言包缺失的登录、通行密钥、多因素验证、个人资料和认证错误词条。独立浏览器打开的官方托管页面由官方管理，无法通过本地语言选项修改。
+
 独立签名身份不会自动继承官方的域名关联。完整验收至少包括：
 
 - 在独立应用中登录真实 T3 Connect 账号，读取该账号的环境列表，并验证远程连接。
@@ -98,3 +100,5 @@ vp run dev --no-seed --home-dir /absolute/path/to/isolated-t3-home
 官方基线：`pingdotgg/t3code`，提交 `3ed5fb29bd2ffdb31cf146f016300e26ca237f99`。
 
 简体译文和显式界面翻译接入参考 [ZhiweiXiao98/t3code](https://github.com/ZhiweiXiao98/t3code/tree/3270444c64826f67c953c2816dd1fd8f10d87953)，保留原项目的 MIT 许可。没有整体合并其移动端、发布和基础设施改动。繁体初稿由 OpenCC 1.4.2（MIT AND Apache-2.0）辅助转换，并按界面用语调整；运行时不依赖 OpenCC，也不转换用户内容。今后译文可直接独立编辑。
+
+云登录基础词条来自 Clerk 官方 `@clerk/localizations` 4.24.6（MIT）。缺失的简体账号词条参考其繁体版本，离线转换后补充安全提示；繁体缺失词条另行补齐。更新该依赖后应检查补充词条是否仍然需要，并运行账号词条与插值检查。

@@ -39,6 +39,7 @@ catalog:
   "@clerk/electron": 0.1.10
   "@clerk/electron-passkeys": 0.0.3
   "@clerk/expo": 4.15.1
+  "@clerk/localizations": 4.24.6
   "@clerk/react": 6.18.6
   "@clerk/shared": 4.44.1
   # Must match the version alchemy depends on: the relay overrides its
@@ -155,6 +156,7 @@ overrides:
   "@clerk/electron": "catalog:"
   "@clerk/electron-passkeys": "catalog:"
   "@clerk/expo": "catalog:"
+  "@clerk/localizations": "catalog:"
   "@clerk/react": "catalog:"
   "@clerk/shared": "catalog:"
   "@effect/atom-react": "catalog:"
