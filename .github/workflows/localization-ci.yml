@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
-      VITEST_MAX_WORKERS: "1"
+      VITEST_MAX_WORKERS: "2"
     steps:
       - name: Check out public source without submodule credential cleanup
         shell: bash

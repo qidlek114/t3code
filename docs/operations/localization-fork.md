@@ -60,11 +60,38 @@ vp run dev --no-seed --home-dir /absolute/path/to/isolated-t3-home
 
 `Build multilingual Mac preview` 使用 GitHub 托管的 `macos-15`（Apple Silicon）和 `macos-15-intel` 构建两种架构，不需要部署自托管 runner。流程依次执行变更检查、独立标识预检查、DMG/ZIP 打包及合成会话启动测试；两种架构都通过后才创建草稿预发布，并附上 SHA-256 校验值。
 
-目前工作流只生成未签名预览版，默认不公开发布，也不提供自动更新清单。macOS 可能阻止打开下载的未签名应用。先验收草稿中的包，再决定公开发布；不要把未验证的包设为稳定更新。
+这个预览工作流生成未签名包，默认不公开发布，也不提供自动更新清单。macOS 可能阻止打开下载的未签名应用。
 
-正式发布需要你的 Apple Developer 身份、Developer ID Application 证书及私钥、证书密码、用于公证的 App Store Connect API 凭据，以及与独立 bundle ID 匹配的 provisioning profile。官方证书无法从开源仓库取得。配置应遵循官方 `release-desktop.yml` 中的签名步骤，凭据存入 GitHub Actions Secrets；切勿提交到 Git。
+`Build signed multilingual Mac release` 只能从本 fork 的 `localization` 分支手动启动。它使用相同的两种 GitHub 托管 macOS runner，执行 Apple 签名、公证、签名身份校验、Gatekeeper 检查和合成会话启动测试，最后合并两种架构的更新清单并创建草稿预发布。凭据缺失或任一验证失败都会停止，不会回退到未签名包。
 
-正式更新的构建环境须设置 `T3CODE_DESKTOP_UPDATE_REPOSITORY=qidlek114/t3code`，并发布本 fork 的已签名 ZIP 和更新清单。先用两个连续测试版本验证更新、数据保留和签名一致性，再启用自动发布。不得直接更新到官方二进制，否则界面翻译会消失。
+签名需要 Apple Developer 身份、Developer ID Application 证书及私钥、证书密码、用于公证的 App Store Connect API 凭据，以及启用了 Associated Domains 且与独立 bundle ID 匹配的 Developer ID provisioning profile。官方证书无法从开源仓库取得。
+
+创建 GitHub Environment `macos-release`，部署分支策略只允许 `localization`，然后配置这些环境 Secrets：
+
+| 名称                         | 内容                                      |
+| ---------------------------- | ----------------------------------------- |
+| `CSC_LINK`                   | 带私钥的加密 P12 文件的 Base64            |
+| `CSC_KEY_PASSWORD`           | P12 密码                                  |
+| `APPLE_API_KEY`              | 团队 App Store Connect API 私钥的 P8 内容 |
+| `APPLE_API_KEY_ID`           | API Key ID                                |
+| `APPLE_API_ISSUER`           | API Issuer ID                             |
+| `MACOS_PROVISIONING_PROFILE` | Developer ID 描述文件的 Base64            |
+
+同一环境添加变量 `APPLE_TEAM_ID`。私钥只在签名步骤注入，不写进源码、缓存或发布产物。签名工作流不监听 PR，也不接受其他分支的签名请求。维护者仍需审查合并到 `localization` 的构建代码及依赖。
+
+签名版本采用官方支持的 `<基础版本>-nightly.<UTC日期>.<工作流运行号>` 格式。构建环境固定 `T3CODE_DESKTOP_UPDATE_REPOSITORY=qidlek114/t3code`，更新清单包含本 fork 的两种架构已签名 ZIP。草稿不会被自动更新发现。先验收云登录，并用两个连续签名版本验证更新、数据保留和签名一致性，再公开发布；不得直接更新到官方二进制，否则界面翻译会消失。
+
+## 官方 T3 Connect
+
+两种构建工作流都会把官方 `.env.example` 复制为一次性构建目录的 `.env`。其中只有官方明确公开的 Clerk publishable key、JWT template 名称、CLI OAuth client ID 和 relay URL，不使用官方后台私钥，也不另建云服务。配置必须在 web、server 和 desktop 编译之前载入。
+
+独立签名身份不会自动继承官方的域名关联。完整验收至少包括：
+
+- 在独立应用中登录真实 T3 Connect 账号，读取该账号的环境列表，并验证远程连接。
+- 原生通行密钥：官方 `clerk.t3.codes` 的 AASA `webcredentials.apps` 必须包含 `<APPLE_TEAM_ID>.com.qidlek114.t3code.i18n`；需要官方 Clerk 管理员添加。
+- 系统浏览器 OAuth 回跳：当前 Clerk Electron SDK 把内部 renderer scheme 同时用作 OAuth callback。构建保留内部 `t3code://app`，但只在系统注册独立的 `t3code-i18n` 协议，因此不能把普通账号登录成功视为浏览器回跳也通过。完整独立回跳需官方允许 `t3code-i18n://app/` 和对应 origin 后，再同步调整 renderer scheme 及相关链接处理，并验证与官方应用共存。
+
+这些配置由官方服务控制，fork 无法自行修改。打包、签名、公证和合成启动测试通过，不代表真实账号、通行密钥或 OAuth 已验收。
 
 ## 来源
 

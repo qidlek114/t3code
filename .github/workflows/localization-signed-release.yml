@@ -1,0 +1,196 @@
+name: Build signed multilingual Mac release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: localization-signed-mac
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: github.repository == 'qidlek114/t3code' && github.ref == 'refs/heads/localization'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      VITEST_MAX_WORKERS: "2"
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out public source without submodule credential cleanup
+        shell: bash
+        env:
+          CHECKOUT_REF: ${{ github.sha }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags origin "$CHECKOUT_REF"
+          git sparse-checkout set --no-cone '/*' '!/.repos/' '!/apps/mobile/modules/t3-terminal/Vendor/**/*.a'
+          git checkout --detach FETCH_HEAD
+      - uses: ./.github/actions/setup-ci-deps
+      - run: vp exec playwright install --with-deps chromium
+        working-directory: apps/web
+      - run: node apps/desktop/scripts/ensure-electron-runtime.mjs
+      - name: Check localization and build isolation
+        run: |
+          git fetch --no-tags https://github.com/pingdotgg/t3code.git main:refs/remotes/upstream/main
+          vp run check:changed upstream/main --concurrency 2
+          node .github/scripts/localization-build.cjs
+      - id: version
+        shell: bash
+        run: |
+          base=$(node -p "require('./apps/desktop/package.json').version.split('-')[0]")
+          echo "version=$base-nightly.$(date -u +%Y%m%d).$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: verify
+    environment: macos-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    env:
+      T3CODE_DESKTOP_UPDATE_REPOSITORY: qidlek114/t3code
+      VERSION: ${{ needs.verify.outputs.version }}
+      BUILD_ARCH: ${{ matrix.arch }}
+    steps:
+      - name: Check out public source without submodule credential cleanup
+        shell: bash
+        env:
+          CHECKOUT_REF: ${{ github.sha }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags origin "$CHECKOUT_REF"
+          git sparse-checkout set --no-cone '/*' '!/.repos/' '!/apps/mobile/modules/t3-terminal/Vendor/**/*.a'
+          git checkout --detach FETCH_HEAD
+      - uses: ./.github/actions/setup-ci-deps
+        with:
+          install-args: --filter=t3... --filter=@t3tools/web... --filter=@t3tools/desktop... --filter=@t3tools/scripts...
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+        with:
+          toolchain: stable
+      - name: Prepare isolated identity and official T3 Connect
+        run: |
+          node .github/scripts/localization-build.cjs --apply
+          cp .env.example .env
+      - name: Sign and notarize DMG and ZIP
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+          MACOS_PROVISIONING_PROFILE: ${{ secrets.MACOS_PROVISIONING_PROFILE }}
+        run: |
+          set -euo pipefail
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_API_KEY APPLE_API_KEY_ID APPLE_API_ISSUER APPLE_TEAM_ID MACOS_PROVISIONING_PROFILE; do
+            [[ -n "${!name}" ]] || { echo "Missing signing configuration: $name" >&2; exit 1; }
+          done
+          umask 077
+          credentials=$(mktemp -d "$RUNNER_TEMP/i18n-signing.XXXXXXXX")
+          trap 'rm -rf "$credentials"' EXIT
+          printf '%s' "$APPLE_API_KEY" > "$credentials/AuthKey.p8"
+          printf '%s' "$MACOS_PROVISIONING_PROFILE" | base64 -D > "$credentials/app.provisionprofile"
+          security cms -D -i "$credentials/app.provisionprofile" >/dev/null
+          export APPLE_API_KEY="$credentials/AuthKey.p8"
+          export T3CODE_APPLE_TEAM_ID="$APPLE_TEAM_ID"
+          export T3CODE_MACOS_PROVISIONING_PROFILE="$credentials/app.provisionprofile"
+          vp run dist:desktop:artifact --platform mac --target dmg --arch "$BUILD_ARCH" --build-version "$VERSION" --signed
+      - name: Verify signature, notarization, identity and packaged launch
+        shell: bash
+        env:
+          EXPECTED_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          mount="$RUNNER_TEMP/i18n-launch"
+          dmg=$(find release -maxdepth 1 -name '*.dmg' -print -quit)
+          hdiutil attach -nobrowse -readonly -mountpoint "$mount" "$dmg"
+          trap 'hdiutil detach "$mount" -force >/dev/null || true' EXIT
+          app=$(find "$mount" -maxdepth 1 -name '*.app' -print -quit)
+          [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" == com.qidlek114.t3code.i18n ]]
+          codesign --verify --deep --strict "$app"
+          codesign -dv --verbose=4 "$app" 2> "$RUNNER_TEMP/i18n-signature.txt"
+          [[ "$(sed -n 's/^TeamIdentifier=//p' "$RUNNER_TEMP/i18n-signature.txt")" == "$EXPECTED_TEAM_ID" ]]
+          xcrun stapler validate "$app"
+          spctl --assess --type execute --verbose=2 "$app"
+          executable=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")
+          node scripts/smoke-desktop-app.ts --executable "$app/Contents/MacOS/$executable" --artifacts-dir "$RUNNER_TEMP/i18n-smoke"
+      - name: Collect signed artifacts and architecture-specific update metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir release-publish
+          cp release/*.dmg release/*.zip release/*.blockmap release/nightly-mac.yml release-publish/
+          if [[ "$BUILD_ARCH" == x64 ]]; then
+            mv release-publish/nightly-mac.yml release-publish/nightly-mac-x64.yml
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: signed-mac-${{ matrix.arch }}
+          path: release-publish/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
+
+  draft:
+    needs: [verify, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Check out public source without submodule credential cleanup
+        shell: bash
+        env:
+          CHECKOUT_REF: ${{ github.sha }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags origin "$CHECKOUT_REF"
+          git sparse-checkout set --no-cone '/*' '!/.repos/' '!/apps/mobile/modules/t3-terminal/Vendor/**/*.a'
+          git checkout --detach FETCH_HEAD
+      - uses: ./.github/actions/setup-ci-deps
+        with:
+          install-args: --filter=@t3tools/scripts...
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: signed-mac-*
+          merge-multiple: true
+          path: release-publish
+      - name: Merge update metadata and checksum the final signed bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/merge-update-manifests.ts --platform mac release-publish/nightly-mac.yml release-publish/nightly-mac-x64.yml
+          rm release-publish/nightly-mac-x64.yml
+          cd release-publish
+          sha256sum *.dmg *.zip *.blockmap nightly-mac.yml > SHA256SUMS.txt
+      - name: Create a draft for manual acceptance
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          printf 'English / 简体中文 / 繁體中文\n\nSource: %s\n\nSigned and notarized for Apple Silicon and Intel. Both packaged launch checks passed. Separate app identity and data directories; updates point to qidlek114/t3code.\n\nOfficial T3 Connect public configuration is included. Real account login, native passkeys, OAuth callbacks and an upgrade from the preceding signed version still require acceptance before publication.\n' "$SOURCE_SHA" > "$RUNNER_TEMP/i18n-release-notes.md"
+          gh release create "v$VERSION" release-publish/* --target "$SOURCE_SHA" --draft --prerelease --title "T3 Code I18n $VERSION" --notes-file "$RUNNER_TEMP/i18n-release-notes.md"

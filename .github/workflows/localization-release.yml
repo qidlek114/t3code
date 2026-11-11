@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
-      VITEST_MAX_WORKERS: "1"
+      VITEST_MAX_WORKERS: "2"
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -82,6 +82,8 @@ jobs:
           toolchain: stable
       - name: Prepare separate app identity and data directories
         run: node .github/scripts/localization-build.cjs --apply
+      - name: Enable official T3 Connect with its public source-build configuration
+        run: cp .env.example .env
       - name: Build unsigned DMG and ZIP
         run: vp run dist:desktop:artifact --platform mac --target dmg --arch "$BUILD_ARCH" --build-version "$VERSION" --verbose
       - name: Launch packaged app with the synthetic fixture
