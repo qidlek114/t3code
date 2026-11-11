@@ -1,3 +1,5 @@
+import { useSourceTranslation } from "~/i18n/useSourceTranslation";
+import { LocalizedText } from "~/i18n/LocalizedText";
 import { MICROPHONE_PERMISSION_ERROR } from "@t3tools/client-runtime/voice-input";
 import { CheckIcon, MicIcon, PauseIcon, PlayIcon, RotateCcwIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -28,6 +30,8 @@ type Capture = {
  * at the microphone rather than at transcription.
  */
 export function MicrophoneTest({ microphoneId }: { microphoneId: string }) {
+  const localizeUi = useSourceTranslation();
+
   const [phase, setPhase] = useState<"idle" | "starting" | "recording" | "ready">("idle");
   const [recording, setRecording] = useState<{ url: string; duration: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -195,7 +199,7 @@ export function MicrophoneTest({ microphoneId }: { microphoneId: string }) {
     return (
       <Button size="sm" variant="outline" onClick={() => void start()}>
         <MicIcon />
-        Test microphone
+        <LocalizedText source={"Test microphone"} />
       </Button>
     );
   }
@@ -215,7 +219,7 @@ export function MicrophoneTest({ microphoneId }: { microphoneId: string }) {
       <Button
         size="icon-sm-pill"
         variant="ghost"
-        aria-label="Cancel microphone test"
+        aria-label={localizeUi("Cancel microphone test")}
         onClick={cancel}
       >
         <XIcon />
@@ -226,12 +230,12 @@ export function MicrophoneTest({ microphoneId }: { microphoneId: string }) {
           <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-primary" />
           <span
             className="shrink-0 text-xs tabular-nums text-muted-foreground"
-            aria-label="Recording time"
+            aria-label={localizeUi("Recording time")}
           >
             {formatTime(elapsed)} / {formatTime(LOOPBACK_SECONDS)}
           </span>
           <meter
-            aria-label="Microphone input level"
+            aria-label={localizeUi("Microphone input level")}
             min={0}
             max={1}
             value={level}
@@ -240,12 +244,12 @@ export function MicrophoneTest({ microphoneId }: { microphoneId: string }) {
         </>
       ) : (
         <span role="status" className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-          Opening microphone…
+          <LocalizedText source={"Opening microphone…"} />
         </span>
       )}
       <Button
         size="icon-sm-pill"
-        aria-label="Stop recording"
+        aria-label={localizeUi("Stop recording")}
         disabled={phase !== "recording"}
         onClick={() => {
           const recorder = capture.current?.recorder;
@@ -269,6 +273,8 @@ function MicrophonePlayback({
   onRetry(): void;
   onDone(): void;
 }) {
+  const localizeUi = useSourceTranslation();
+
   const audio = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
@@ -314,7 +320,7 @@ function MicrophonePlayback({
         </Button>
         <input
           type="range"
-          aria-label="Recording playback position"
+          aria-label={localizeUi("Recording playback position")}
           min={0}
           max={duration}
           step={0.01}
@@ -333,16 +339,21 @@ function MicrophonePlayback({
         <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
           {formatTime(position)}
         </span>
-        <Button size="icon-sm-pill" variant="ghost" aria-label="Record again" onClick={onRetry}>
+        <Button
+          size="icon-sm-pill"
+          variant="ghost"
+          aria-label={localizeUi("Record again")}
+          onClick={onRetry}
+        >
           <RotateCcwIcon />
         </Button>
-        <Button size="icon-sm-pill" aria-label="Done" onClick={onDone}>
+        <Button size="icon-sm-pill" aria-label={localizeUi("Done")} onClick={onDone}>
           <CheckIcon />
         </Button>
       </VoiceInputPill>
       {failed ? (
         <p role="alert" className="text-xs text-destructive">
-          Could not play this recording. Try recording again.
+          <LocalizedText source={"Could not play this recording. Try recording again."} />
         </p>
       ) : null}
     </div>

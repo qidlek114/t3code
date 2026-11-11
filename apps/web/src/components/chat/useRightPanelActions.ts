@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import type { ToolCallDiffTarget } from "../../diffPanelStore";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import type { ThreadPreviewState } from "../../previewStateStore";
@@ -66,6 +68,8 @@ interface RightPanelActionsInput {
  * requests, device, and terminal tabs.
  */
 export function useRightPanelActions(input: RightPanelActionsInput) {
+  const { locale: uiLocale, t } = useI18n();
+
   const {
     closeRightPanelSurface,
     activeThreadRef,
@@ -119,7 +123,7 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Unable to open browser",
+            title: translateWebSource(uiLocale, "Unable to open browser"),
             description: error.message,
           }),
         );
@@ -251,8 +255,8 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Failed to copy path",
-          description: "Clipboard API unavailable.",
+          title: t("sidebar.copyPathFailed"),
+          description: translateWebSource(uiLocale, "Clipboard API unavailable."),
         }),
       );
       return;
@@ -266,7 +270,7 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
       () => {
         toastManager.add({
           type: "success",
-          title: "Path copied",
+          title: t("sidebar.pathCopied"),
           description: clipboardPath,
         });
       },
@@ -274,8 +278,8 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Failed to copy path",
-            description: error instanceof Error ? error.message : "An error occurred.",
+            title: t("sidebar.copyPathFailed"),
+            description: error instanceof Error ? error.message : t("common.error"),
           }),
         );
       },

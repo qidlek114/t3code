@@ -1,3 +1,6 @@
+import { readWebI18n } from "../../i18n/readWebI18n";
+import { translateWebSource } from "../../i18n/messages";
+import { useI18n } from "../../i18n/WebI18nContext";
 import {
   AuthOrchestrationOperateScope,
   AuthProvidersManageScope,
@@ -41,10 +44,14 @@ function needsImport(session: AcpRegistrySession) {
 function reportFailure(title: string, result: AtomCommandResult<unknown, unknown>) {
   if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return;
   const error = squashAtomCommandFailure(result);
+  const { locale } = readWebI18n();
   toastManager.add({
     type: "error",
-    title,
-    description: error instanceof Error ? error.message : "The ACP operation failed.",
+    title: translateWebSource(locale, title),
+    description:
+      error instanceof Error
+        ? error.message
+        : translateWebSource(locale, "The ACP operation failed."),
   });
 }
 
@@ -52,7 +59,7 @@ function parseProviderHeaders(
   text: string,
 ):
   | { readonly ok: true; readonly headers: Record<string, string> | undefined }
-  | { readonly ok: false; readonly error: string } {
+  | { readonly ok: false; readonly error: string; readonly sourceMessage?: true } {
   if (text.trim().length === 0) return { ok: true, headers: undefined };
   let parsed: unknown;
   try {
@@ -61,6 +68,7 @@ function parseProviderHeaders(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Headers must be valid JSON.",
+      ...(error instanceof Error ? {} : { sourceMessage: true as const }),
     };
   }
   if (
@@ -69,7 +77,11 @@ function parseProviderHeaders(
     Array.isArray(parsed) ||
     !Object.values(parsed).every((value) => typeof value === "string")
   ) {
-    return { ok: false, error: "Headers must be a JSON object with string values." };
+    return {
+      ok: false,
+      error: "Headers must be a JSON object with string values.",
+      sourceMessage: true,
+    };
   }
   return { ok: true, headers: parsed as Record<string, string> };
 }
@@ -106,6 +118,7 @@ function InstanceSessionManagement(
     readonly onProjectChange: (projectId: ProjectId) => void;
   },
 ) {
+  const { locale: sourceLocale } = useI18n();
   const canOperate = useEnvironmentScope(props.environmentId, AuthOrchestrationOperateScope);
   const canRead = useEnvironmentScope(props.environmentId, AuthOrchestrationReadScope);
   const { projectId } = props;
@@ -233,7 +246,10 @@ function InstanceSessionManagement(
       );
       toastManager.add({
         type: "success",
-        title: result.value.imported ? "ACP session imported" : "ACP session already imported",
+        title: translateWebSource(
+          readWebI18n().locale,
+          result.value.imported ? "ACP session imported" : "ACP session already imported",
+        ),
       });
       return;
     }
@@ -265,7 +281,10 @@ function InstanceSessionManagement(
       setSessions((current) =>
         current.filter((candidate) => candidate.sessionId !== session.sessionId),
       );
-      toastManager.add({ type: "success", title: "ACP session deleted" });
+      toastManager.add({
+        type: "success",
+        title: translateWebSource(readWebI18n().locale, "ACP session deleted"),
+      });
       return;
     }
     reportFailure("Could not delete ACP session", result);
@@ -317,8 +336,10 @@ function InstanceSessionManagement(
     if (!parsedHeaders.ok) {
       toastManager.add({
         type: "error",
-        title: "Invalid provider headers",
-        description: parsedHeaders.error,
+        title: translateWebSource(readWebI18n().locale, "Invalid provider headers"),
+        description: parsedHeaders.sourceMessage
+          ? translateWebSource(readWebI18n().locale, parsedHeaders.error)
+          : parsedHeaders.error,
       });
       return;
     }
@@ -338,7 +359,10 @@ function InstanceSessionManagement(
     if (generation !== projectGeneration.current) return;
     setSavingProviderId(null);
     if (result._tag === "Success") {
-      toastManager.add({ type: "success", title: "ACP provider configured" });
+      toastManager.add({
+        type: "success",
+        title: translateWebSource(readWebI18n().locale, "ACP provider configured"),
+      });
       await loadProviders(provider.providerId);
       return;
     }
@@ -367,7 +391,10 @@ function InstanceSessionManagement(
     if (generation !== projectGeneration.current) return;
     setSavingProviderId(null);
     if (result._tag === "Success") {
-      toastManager.add({ type: "success", title: "ACP provider disabled" });
+      toastManager.add({
+        type: "success",
+        title: translateWebSource(readWebI18n().locale, "ACP provider disabled"),
+      });
       await loadProviders(provider.providerId);
       return;
     }
@@ -385,7 +412,10 @@ function InstanceSessionManagement(
     if (result._tag === "Success") {
       setSessions([]);
       setNextCursor(null);
-      toastManager.add({ type: "success", title: "Logged out of ACP agent" });
+      toastManager.add({
+        type: "success",
+        title: translateWebSource(readWebI18n().locale, "Logged out of ACP agent"),
+      });
       return;
     }
     reportFailure("Could not log out of ACP agent", result);
@@ -394,8 +424,11 @@ function InstanceSessionManagement(
   return (
     <div className="grid gap-3">
       <SettingsRow
-        title="Native sessions"
-        description="Resume agent-owned conversations as T3 threads."
+        title={translateWebSource(sourceLocale, "Native sessions")}
+        description={translateWebSource(
+          sourceLocale,
+          "Resume agent-owned conversations as T3 threads.",
+        )}
         status={
           canList && props.projects.length === 0
             ? "Add a project before importing sessions."
@@ -424,7 +457,11 @@ function InstanceSessionManagement(
                     props.onProjectChange(value as ProjectId);
                   }}
                 >
-                  <SelectTrigger aria-label="Project for ACP sessions" className="w-40" size="sm">
+                  <SelectTrigger
+                    aria-label={translateWebSource(sourceLocale, "Project for ACP sessions")}
+                    className="w-40"
+                    size="sm"
+                  >
                     <SelectValue>
                       {props.projects.find((project) => project.id === projectId)?.title}
                     </SelectValue>
@@ -528,9 +565,14 @@ function InstanceSessionManagement(
         <div className="grid gap-3 border-t border-border/60 px-3 py-3 sm:px-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-medium text-foreground">Agent providers</p>
+              <p className="text-xs font-medium text-foreground">
+                {translateWebSource(sourceLocale, "Agent providers")}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Configure non-secret routing. Headers are write-only.
+                {translateWebSource(
+                  sourceLocale,
+                  "Configure non-secret routing. Headers are write-only.",
+                )}
               </p>
             </div>
             <Button
@@ -555,7 +597,11 @@ function InstanceSessionManagement(
                 props.onProjectChange(value as ProjectId);
               }}
             >
-              <SelectTrigger aria-label="Project for ACP providers" className="min-w-48" size="xs">
+              <SelectTrigger
+                aria-label={translateWebSource(sourceLocale, "Project for ACP providers")}
+                className="min-w-48"
+                size="xs"
+              >
                 <SelectValue>
                   {props.projects.find((project) => project.id === projectId)?.title}
                 </SelectValue>
@@ -621,7 +667,7 @@ function InstanceSessionManagement(
                             }
                             onClick={() => void disableConfiguredProvider(provider)}
                           >
-                            Disable
+                            {translateWebSource(sourceLocale, "Disable")}
                           </Button>
                         ) : null}
                       </div>
@@ -649,7 +695,7 @@ function InstanceSessionManagement(
                         size="sm"
                         type="url"
                         aria-label={`${provider.providerId} base URL`}
-                        placeholder="https://api.example.com"
+                        placeholder={translateWebSource(sourceLocale, "https://api.example.com")}
                         value={draft.baseUrl}
                         disabled={props.readOnly || savingProviderId !== null}
                         onValueChange={(value) => updateDraft({ baseUrl: value })}
@@ -659,7 +705,10 @@ function InstanceSessionManagement(
                       size="sm"
                       type="password"
                       aria-label={`${provider.providerId} write-only headers JSON`}
-                      placeholder='Write-only headers JSON, e.g. {"Authorization":"Bearer …"}'
+                      placeholder={translateWebSource(
+                        sourceLocale,
+                        'Write-only headers JSON, e.g. {"Authorization":"Bearer …"}',
+                      )}
                       value={draft.headers}
                       disabled={props.readOnly || savingProviderId !== null}
                       onValueChange={(value) => updateDraft({ headers: value })}

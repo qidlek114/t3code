@@ -3,6 +3,9 @@ import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
 import * as Schema from "effect/Schema";
 import { StarIcon } from "lucide-react";
 
+import { readWebI18n } from "../i18n/readWebI18n";
+import { translateWebSource } from "../i18n/messages";
+
 import { getLocalStorageItem, setLocalStorageItem } from "../hooks/useLocalStorage";
 import { readLocalApi } from "../localApi";
 import { appAtomRegistry } from "../rpc/atomRegistry";
@@ -28,6 +31,7 @@ function dismiss() {
 
 // Every close path, including both buttons, runs `onClose`, which saves the dismissal.
 function showStarPrompt(environmentId: EnvironmentId) {
+  const { locale } = readWebI18n();
   const close = () => toastManager.close(id);
   const openInBrowser = () => {
     close();
@@ -36,14 +40,16 @@ function showStarPrompt(environmentId: EnvironmentId) {
       .catch(() => undefined);
   };
   const starInPlace = async () => {
-    toastManager.update(id, { actionProps: { children: "Starring…", disabled: true } });
+    toastManager.update(id, {
+      actionProps: { children: translateWebSource(locale, "Starring…"), disabled: true },
+    });
     if (await starRepository(environmentId)) {
       // Thank them in place: a closing and opening toast would slide under the confetti.
       dismiss();
       toastManager.update(id, {
         type: "success",
-        title: "Thanks for the star!",
-        description: "It really helps T3 Code grow.",
+        title: translateWebSource(locale, "Thanks for the star!"),
+        description: translateWebSource(locale, "It really helps T3 Code grow."),
         timeout: 5_000,
         actionProps: undefined,
         data: {},
@@ -54,18 +60,23 @@ function showStarPrompt(environmentId: EnvironmentId) {
     // Browsers block new tabs once the click's activation expires; desktop opens through its bridge.
     if (window.desktopBridge || navigator.userActivation?.isActive !== false)
       return openInBrowser();
-    toastManager.update(id, { actionProps: { children: "Open GitHub", onClick: openInBrowser } });
+    toastManager.update(id, {
+      actionProps: { children: translateWebSource(locale, "Open GitHub"), onClick: openInBrowser },
+    });
   };
   const id = toastManager.add({
-    title: "Enjoying T3 Code?",
-    description: "Give us a star on GitHub to let us know!",
+    title: translateWebSource(locale, "Enjoying T3 Code?"),
+    description: translateWebSource(locale, "Give us a star on GitHub to let us know!"),
     timeout: 0,
     onClose: dismiss,
-    actionProps: { children: "Star on GitHub", onClick: () => void starInPlace() },
+    actionProps: {
+      children: translateWebSource(locale, "Star on GitHub"),
+      onClick: () => void starInPlace(),
+    },
     data: {
       actionLayout: "stacked-end",
       leadingIcon: <StarIcon aria-hidden className="size-4 text-warning-foreground" />,
-      secondaryActionProps: { children: "Dismiss", onClick: close },
+      secondaryActionProps: { children: translateWebSource(locale, "Dismiss"), onClick: close },
       secondaryActionVariant: "ghost",
     },
   });

@@ -1,3 +1,6 @@
+import { LocalizedText } from "~/i18n/LocalizedText";
+import { translateWebSource } from "../../i18n/messages";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
@@ -43,6 +46,8 @@ export function DatabaseStorageNotice({
 }: {
   environments: ReadonlyArray<{ readonly environmentId: EnvironmentId; readonly label: string }>;
 }) {
+  const { locale: sourceLocale } = useI18n();
+
   const environmentIds = environments.map((environment) => environment.environmentId);
   const recommendations = useAtomValue(
     serverEnvironment.databaseCompactionRecommendations(JSON.stringify(environmentIds)),
@@ -68,9 +73,9 @@ export function DatabaseStorageNotice({
     }));
   if (visible.length === 0) return null;
   return (
-    <SettingsSection id="storage-database" title="Database">
+    <SettingsSection id="storage-database" title={translateWebSource(sourceLocale, "Database")}>
       <SettingsRow
-        title="Reclaim freed database space"
+        title={translateWebSource(sourceLocale, "Reclaim freed database space")}
         description={`These databases still hold space freed by history cleanup.${
           visible.every((recommendation) => recommendation.reclaimable)
             ? ""
@@ -84,7 +89,7 @@ export function DatabaseStorageNotice({
             size="xs"
             onClick={() => setDismissed((current) => [...current, environmentId])}
           >
-            Dismiss
+            {translateWebSource(sourceLocale, "Dismiss")}
           </Button>
         );
         return reclaimable ? (
@@ -107,7 +112,7 @@ export function DatabaseStorageNotice({
                   size="xs"
                   onClick={() => copyToClipboard(status.compactCommand, undefined)}
                 >
-                  Copy command
+                  {translateWebSource(sourceLocale, "Copy command")}
                 </Button>
                 {dismiss}
               </div>
@@ -130,6 +135,7 @@ function ReclaimRow({
   readonly status: DatabaseStorageStatus;
   readonly dismiss: ReactNode;
 }) {
+  const { t } = useI18n();
   const reclaim = useAtomCommand(serverEnvironment.reclaimDatabaseSpace);
   const [confirming, setConfirming] = useState(false);
   const [requested, setRequested] = useState(false);
@@ -144,8 +150,8 @@ function ReclaimRow({
     if (result._tag === "Success") {
       toastManager.add({
         type: "success",
-        title: `Reclaiming ${amount} on ${label}`,
-        description: `T3 Code there restarts and is back in about ${minutes} min.`,
+        title: t("localization.storage.reclaim", { amount, environment: label }),
+        description: t("localization.storage.reclaimDescription", { minutes }),
       });
       return;
     }
@@ -154,7 +160,7 @@ function ReclaimRow({
     const error = squashAtomCommandFailure(result);
     toastManager.add({
       type: "error",
-      title: `Could not reclaim space on ${label}`,
+      title: t("localization.storage.reclaimError", { environment: label }),
       description: error instanceof Error ? error.message : "An error occurred.",
     });
   };
@@ -181,16 +187,27 @@ function ReclaimRow({
             <AlertDialogPopup>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  Reclaim {amount} on {label}?
+                  {t("localization.storage.reclaimQuestion", { amount, environment: label })}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  T3 Code on {label} stops, rebuilds its database, and starts again. It will be
-                  offline for about {minutes} min. Running agents stop when it restarts.
+                  <LocalizedText source={"T3 Code on "} />
+                  {label}
+                  <LocalizedText
+                    source={
+                      " stops, rebuilds its database, and starts again. It will be offline for about "
+                    }
+                  />
+                  {minutes}
+                  <LocalizedText source={" min. Running agents stop when it restarts."} />
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
-                <Button onClick={() => void start()}>Restart and reclaim</Button>
+                <AlertDialogClose render={<Button variant="outline" />}>
+                  <LocalizedText source={"Cancel"} />
+                </AlertDialogClose>
+                <Button onClick={() => void start()}>
+                  <LocalizedText source={"Restart and reclaim"} />
+                </Button>
               </AlertDialogFooter>
             </AlertDialogPopup>
           </AlertDialog>

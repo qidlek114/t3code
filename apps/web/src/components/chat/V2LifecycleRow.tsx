@@ -1,3 +1,7 @@
+import { useSourceTranslation } from "~/i18n/useSourceTranslation";
+import { translateChatSource } from "~/i18n/chatSourceMessages";
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import { ThreadHoverCardPopup } from "../ThreadHoverCard";
 import { AgentElapsed } from "./AgentElapsed";
 import { projectedSubagentsToRuntime } from "@t3tools/client-runtime/state/subagentRuntime";
@@ -74,11 +78,12 @@ export function V2LifecycleRow(props: {
   readonly runs: ReadonlyArray<HandoffTimelineRun>;
   readonly onOpenThread: (threadId: ThreadId) => void;
 }) {
+  const { t: residualT, locale } = useI18n();
   const { item } = props;
   if (item.type === "run_interrupt_result") {
     return (
       <TimelineSystemDivider
-        label="Run interrupted"
+        label={residualT("chatResidual.copy71")}
         detail={item.message}
         icon={CircleStopIcon}
         wrapDetail
@@ -98,9 +103,17 @@ export function V2LifecycleRow(props: {
     const relatedThreadId = item.source.type === "run" ? item.source.threadId : item.targetThreadId;
     return (
       <TimelineSystemDivider
-        label={item.source.type === "run" ? "Forked from conversation" : "Conversation fork"}
+        label={
+          item.source.type === "run"
+            ? residualT("chatResidual.copy72")
+            : residualT("chatResidual.copy73")
+        }
         icon={GitForkIcon}
-        actionLabel={item.source.type === "run" ? "Open source conversation" : "Open fork"}
+        actionLabel={
+          item.source.type === "run"
+            ? residualT("chatResidual.copy74")
+            : residualT("chatResidual.copy75")
+        }
         onAction={() => props.onOpenThread(relatedThreadId)}
       />
     );
@@ -116,15 +129,17 @@ export function V2LifecycleRow(props: {
             <MessageSquareIcon className="size-4 text-secondary-label" aria-hidden />
           </span>
           <span className="min-w-0 flex-1 truncate text-sm font-medium">
-            {item.title ?? "Created thread"}
+            {item.title ?? residualT("chatResidual.copy76")}
           </span>
           <Button
             size="xs"
             variant="outline"
-            aria-label={`Open ${item.title ?? "created thread"}`}
+            aria-label={residualT("chatResidual.openNamed", {
+              name: item.title ?? residualT("chatResidual.createdThread"),
+            })}
             onClick={() => props.onOpenThread(item.targetThreadId)}
           >
-            Open chat
+            {residualT("chatResidual.copy59")}
           </Button>
         </div>
       );
@@ -133,13 +148,20 @@ export function V2LifecycleRow(props: {
       <WorkLogRow
         data-v2-item-type={item.type}
         icon={<T3Wordmark className="size-4 text-icon-muted" aria-hidden />}
-        label={<>Created thread{item.title ? ` · ${item.title}` : ""}</>}
+        label={
+          <>
+            {residualT("chatResidual.copy76")}
+            {item.title ? ` · ${item.title}` : ""}
+          </>
+        }
         trailing={
           <InlineButton
-            aria-label={`Open ${item.title ?? "created thread"}`}
+            aria-label={residualT("chatResidual.openNamed", {
+              name: item.title ?? residualT("chatResidual.createdThread"),
+            })}
             onClick={() => props.onOpenThread(item.targetThreadId)}
           >
-            Open chat
+            {residualT("chatResidual.copy59")}
           </InlineButton>
         }
       />
@@ -154,7 +176,7 @@ export function V2LifecycleRow(props: {
         origin={item.origin}
         status={item.status}
         driver={item.driver}
-        title={formatSubagentDisplayTitle(item.title ?? "Subagent")}
+        title={formatSubagentDisplayTitle(item.title ?? translateChatSource(locale, "Subagent"))}
         result={item.result}
         progress={item.progress}
         startedAt={item.startedAt}
@@ -352,6 +374,7 @@ export function SubagentNotificationLink(props: {
   readonly onOpenThread: (threadId: ThreadId) => void;
   readonly fallback: ReactNode;
 }) {
+  const { locale } = useI18n();
   // Follow-up tasks share a child conversation; this notice reports a particular task result.
   const agent = useAtomValue(
     environmentThreadDetails.threadAtom(props.parentRef),
@@ -374,7 +397,7 @@ export function SubagentNotificationLink(props: {
       origin={agent.origin}
       status={agent.status}
       driver={agent.driver}
-      title={formatSubagentDisplayTitle(agent.title ?? "Subagent")}
+      title={formatSubagentDisplayTitle(agent.title ?? translateChatSource(locale, "Subagent"))}
       result={agent.result}
       progress={agent.progress}
       startedAt={agent.startedAt}
@@ -416,6 +439,7 @@ function SubagentTimelineLink(props: {
     readonly timestamp: string;
   };
 }) {
+  const { t: residualT, locale } = useI18n();
   const agent = useAtomValue(
     environmentThreadDetails.threadAtom(props.parentRef),
     (thread) => thread?.projection.subagents.find((agent) => agent.id === props.subagentId) ?? null,
@@ -437,7 +461,10 @@ function SubagentTimelineLink(props: {
         : null;
   const liveStatus = agent?.status ?? props.status;
   const status = props.event ? props.event.status : liveStatus;
-  const statusLabel = props.event?.label ?? subagentStatusVisual(liveStatus).label;
+  const statusLabel = translateChatSource(
+    locale,
+    props.event?.label ?? subagentStatusVisual(liveStatus).label,
+  );
   const result = (agent?.result ?? props.result)?.trim();
   const progress = (agent?.progress ?? props.progress)?.trim();
   const settled = SETTLED_SUBAGENT_STATUSES.has(status ?? liveStatus);
@@ -465,7 +492,9 @@ function SubagentTimelineLink(props: {
             {props.title}
           </span>
           {remote !== undefined ? (
-            <span className="shrink-0 text-xs text-muted-foreground">on {remote.label}</span>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {residualT("chatResidual.on", { name: remote.label })}
+            </span>
           ) : null}
         </span>
         <span
@@ -516,7 +545,7 @@ function SubagentTimelineLink(props: {
             <button
               type="button"
               data-v2-item-type="subagent"
-              aria-label={`Open ${props.title}`}
+              aria-label={residualT("chatResidual.openNamed", { name: props.title })}
               aria-description={statusLabel}
               onClick={open}
               className={cn(
@@ -600,7 +629,9 @@ function EnvironmentHandoffRow({
 
 /** Marks where `/clear` or an automation started a new provider session in this thread. */
 export function FreshSessionRow() {
-  return <TimelineSystemDivider label="New session" icon={EraserIcon} />;
+  const localizeUi = useSourceTranslation();
+
+  return <TimelineSystemDivider label={localizeUi("New session")} icon={EraserIcon} />;
 }
 
 /** A same-harness model or effort change. Shows only what changed. */
@@ -608,6 +639,7 @@ export function ModelSwitchRow(props: {
   readonly environmentId: EnvironmentId;
   readonly modelSwitch: OrchestrationV2ModelSwitch;
 }) {
+  const { locale } = useI18n();
   const providers =
     useAtomValue(serverEnvironment.providersValueAtom(props.environmentId)) ??
     EMPTY_SERVER_PROVIDERS;
@@ -617,7 +649,12 @@ export function ModelSwitchRow(props: {
     const provider = providers.find((candidate) => candidate.instanceId === selection.instanceId);
     const model = provider?.models.find((candidate) => candidate.slug === selection.model);
     const modelName = model ? getTriggerDisplayModelName(model, provider?.driver) : selection.model;
-    return [change.modelChanged ? modelName : null, effort].filter(Boolean).join(" ");
+    return [
+      change.modelChanged ? modelName : null,
+      effort === undefined ? undefined : translateWebSource(locale, effort),
+    ]
+      .filter(Boolean)
+      .join(" ");
   };
   const { from, to } = props.modelSwitch;
   return (
@@ -634,13 +671,14 @@ export function HandoffRow(props: {
   readonly pending?: boolean;
   readonly failed?: boolean;
 }) {
+  const { t: residualT } = useI18n();
   const { from: fromEndpoints, to } = props.endpoints;
   const settings = useAtomValue(serverEnvironment.settingsValueAtom(props.environmentId));
   const derived = deriveProviderInstanceEntries(props.providers);
   const entries = settings ? applyProviderInstanceSettings(derived, settings, null) : derived;
   return (
     <TimelineSystemDivider
-      label={props.pending ? "Context handoff pending" : "Context handoff"}
+      label={props.pending ? residualT("chatResidual.copy77") : residualT("chatResidual.copy78")}
       icon={ArrowRightLeftIcon}
       showDetailSeparator={false}
       tone={props.failed ? "danger" : "neutral"}

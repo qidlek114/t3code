@@ -168,8 +168,21 @@ describe("ExpandedImageDialog", () => {
     expect(zoomedWidth).toBeCloseTo(fitWidth * Math.E, 0);
 
     const pan = async (delta: { x: number; y: number }) => {
+      // Wheel positions the pointer first, which can scroll the resized dialog into view.
+      await userEvent.hover(viewportLocator);
+      let previousPosition: { left: number; top: number } | undefined;
+      await vi.waitFor(() => {
+        const position = { left: viewport.scrollLeft, top: viewport.scrollTop };
+        const previous = previousPosition;
+        previousPosition = position;
+        expect(position).toEqual(previous);
+      });
       const { scrollLeft, scrollTop } = viewport;
+      const settled = new Promise<void>((resolve) =>
+        viewport.addEventListener("scrollend", () => resolve(), { once: true }),
+      );
       await userEvent.wheel(viewportLocator, { delta });
+      await settled;
       await vi.waitFor(() => {
         expect(Math.sign(viewport.scrollLeft - scrollLeft)).toBe(Math.sign(delta.x));
         expect(Math.sign(viewport.scrollTop - scrollTop)).toBe(Math.sign(delta.y));

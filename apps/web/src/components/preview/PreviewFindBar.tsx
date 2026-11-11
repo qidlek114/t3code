@@ -1,3 +1,4 @@
+import { useSourceTranslation } from "~/i18n/useSourceTranslation";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
 import { Button } from "../ui/button";
@@ -12,6 +13,8 @@ interface PreviewFindBarProps {
 }
 
 export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBarProps) {
+  const localizeUi = useSourceTranslation();
+
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<{ active: number; matches: number } | null>(null);
@@ -85,7 +88,7 @@ export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBa
         variant="popover"
         size="lg"
         role="search"
-        aria-label="Find in page"
+        aria-label={localizeUi("Find in page")}
         className="w-full"
       >
         <InputGroupInput
@@ -93,8 +96,8 @@ export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBa
           type="search"
           size="sm"
           value={query}
-          aria-label="Find in page"
-          placeholder="Find in page"
+          aria-label={localizeUi("Find in page")}
+          placeholder={localizeUi("Find in page")}
           maxLength={200}
           spellCheck={false}
           autoComplete="off"
@@ -114,7 +117,7 @@ export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBa
           <Button
             size="icon-xs"
             variant="ghost"
-            aria-label="Previous match"
+            aria-label={localizeUi("Previous match")}
             disabled={navigationDisabled}
             onClick={() => step(false)}
           >
@@ -123,13 +126,18 @@ export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBa
           <Button
             size="icon-xs"
             variant="ghost"
-            aria-label="Next match"
+            aria-label={localizeUi("Next match")}
             disabled={navigationDisabled}
             onClick={() => step(true)}
           >
             <ChevronDownIcon />
           </Button>
-          <Button size="icon-xs" variant="ghost" aria-label="Close find" onClick={onClose}>
+          <Button
+            size="icon-xs"
+            variant="ghost"
+            aria-label={localizeUi("Close find")}
+            onClick={onClose}
+          >
             <XIcon />
           </Button>
         </InputGroupAddon>

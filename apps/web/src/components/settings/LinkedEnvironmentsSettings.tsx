@@ -1,3 +1,6 @@
+import { chineseTemplate } from "@t3tools/shared/chineseUi";
+import { useI18n } from "../../i18n/WebI18nContext";
+import { translateWebSource } from "../../i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import { ANOTHER_ADDRESS, linkRequestFailureMessage } from "@t3tools/client-runtime/link-request";
 import {
@@ -58,23 +61,29 @@ export function LinkedEnvironmentsSettings({
   readonly environmentLabel: string | null;
   readonly isSearchTarget: boolean;
 }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   const links = useEnvironmentQuery(peerLinkEnvironment.list({ environmentId, input: {} }));
   const canLink = useAtomValue(peerLinkEnvironment.link.permissionAtom(environmentId));
   const search = searchableSetting("linked-environments");
   return (
     <SettingsSection
       {...(isSearchTarget ? { id: search.id } : {})}
-      title={environmentLabel === null ? search.title : `${search.title} · ${environmentLabel}`}
+      title={
+        environmentLabel === null ? tx(search.title) : `${tx(search.title)} · ${environmentLabel}`
+      }
       headerAction={canLink ? <LinkEnvironmentAction environmentId={environmentId} /> : null}
     >
       {links.error ? (
-        <SettingsRow title="Could not load linked environments" description={links.error} />
+        <SettingsRow title={tx("Could not load linked environments")} description={links.error} />
       ) : !links.data ? (
-        <SettingsRow title="Loading linked environments…" role="status" />
+        <SettingsRow title={tx("Loading linked environments…")} role="status" />
       ) : links.data.links.length === 0 ? (
         <SettingsRow
-          title="No linked environments"
-          description="Link another machine running T3 Code, such as a VPS, so agents here can launch and drive threads there."
+          title={tx("No linked environments")}
+          description={tx(
+            "Link another machine running T3 Code, such as a VPS, so agents here can launch and drive threads there.",
+          )}
         />
       ) : (
         links.data.links.map((link) => (
@@ -96,6 +105,8 @@ function LinkedEnvironmentRow({
   readonly environmentId: EnvironmentId;
   readonly link: PeerLinkSummary;
 }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   const nowMinute = useNowMinute();
   const health = peerLinkHealth(link, DateTime.makeUnsafe(nowMinute));
   const unlink = useAtomCommand(peerLinkEnvironment.unlink, { label: "unlink environment" });
@@ -103,7 +114,11 @@ function LinkedEnvironmentRow({
   const [busy, setBusy] = useState(false);
   const forget = async () => {
     const confirmed = await (requestConfirmDialog(
-      `Forget ${link.label}? Agents here stop working there. Revoke "T3 Code · …" in ${link.label}'s Connections to end the session there too.`,
+      locale !== "en"
+        ? chineseTemplate(
+            locale,
+          )`移除与 ${link.label} 的关联？此处的代理将停止在该环境中工作。若要同时终止目标环境中的连接，请在 ${link.label} 的“连接”中撤销“T3 Code · …”。`
+        : `Forget ${link.label}? Agents here stop working there. Revoke "T3 Code · …" in ${link.label}'s Connections to end the session there too.`,
       { variant: "destructive" },
     ) ?? Promise.resolve(false));
     if (!confirmed) return;
@@ -111,19 +126,21 @@ function LinkedEnvironmentRow({
     const result = await unlink({ environmentId, input: { environmentId: link.environmentId } });
     setBusy(false);
     if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-      failureToast("Could not forget the link", String(squashAtomCommandFailure(result)));
+      failureToast(tx("Could not forget the link"), String(squashAtomCommandFailure(result)));
     }
   };
   const status =
     health.kind === "expired"
-      ? "Expired. Link it again with a new pairing code."
+      ? tx("Expired. Link it again with a new pairing code.")
       : health.kind === "unreachable"
-        ? (health.detail ?? "Not answering right now.")
+        ? (health.detail ?? tx("Not answering right now."))
         : health.kind === "failing"
           ? health.detail
           : health.expiresInDays !== null
-            ? `Expires in ${health.expiresInDays} ${health.expiresInDays === 1 ? "day" : "days"}. Link it again to renew.`
-            : "Reachable";
+            ? locale !== "en"
+              ? chineseTemplate(locale)`${health.expiresInDays} 天后过期。重新关联即可续期。`
+              : `Expires in ${health.expiresInDays} ${health.expiresInDays === 1 ? "day" : "days"}. Link it again to renew.`
+            : tx("Reachable");
   return (
     <div className={ITEM_ROW_CLASSNAME}>
       <div className={ITEM_ROW_INNER_CLASSNAME}>
@@ -145,7 +162,7 @@ function LinkedEnvironmentRow({
             <h3 className="text-sm font-medium text-foreground">{link.label}</h3>
           </div>
           <p className="text-xs text-muted-foreground">
-            {accessConfig[link.access].label} · {status}
+            {tx(accessConfig[link.access].label)} · {status}
           </p>
           <p className="truncate text-xs text-muted-foreground/80">{link.urls.join(", ")}</p>
         </div>
@@ -157,7 +174,7 @@ function LinkedEnvironmentRow({
               disabled={busy}
               onClick={() => void forget()}
             >
-              {busy ? "Forgetting…" : "Forget"}
+              {busy ? tx("Forgetting…") : tx("Forget")}
             </Button>
           </div>
         ) : null}
@@ -167,6 +184,8 @@ function LinkedEnvironmentRow({
 }
 
 function LinkEnvironmentAction({ environmentId }: { readonly environmentId: EnvironmentId }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   const [open, setOpen] = useState(false);
   const machines = useLinkableMachines(environmentId, open);
   // Null until the user picks; with no other machines known, only an address is left.
@@ -217,7 +236,7 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
     const minted = await mintPairingCodeOn(targetId, access);
     if (Result.isSuccess(minted)) return minted.success;
     setMintFailed((failed) => new Set(failed).add(targetId));
-    failureToast("Could not link the environment", linkRequestFailureMessage(minted.failure));
+    failureToast(tx("Could not link the environment"), linkRequestFailureMessage(minted.failure));
     return null;
   };
   const submit = async () => {
@@ -247,10 +266,16 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
     setBusy(false);
     if (result === null) return;
     if (result._tag === "Success") {
-      toastManager.add({ type: "success", title: `Linked ${result.value.label}` });
+      toastManager.add({
+        type: "success",
+        title:
+          locale !== "en"
+            ? chineseTemplate(locale)`已关联 ${result.value.label}`
+            : `Linked ${result.value.label}`,
+      });
       handleOpenChange(false);
     } else if (!isAtomCommandInterrupted(result)) {
-      failureToast("Could not link the environment", String(squashAtomCommandFailure(result)));
+      failureToast(tx("Could not link the environment"), String(squashAtomCommandFailure(result)));
     }
   };
   return (
@@ -265,16 +290,17 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
         render={
           <Button size="xs" variant="default">
             <PlusIcon className="size-3" />
-            Link
+            {tx("Link")}
           </Button>
         }
       />
       <DialogPopup className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Link an environment</DialogTitle>
+          <DialogTitle>{tx("Link an environment")}</DialogTitle>
           <DialogDescription>
-            Agents here can then launch, message and wait on threads there. It appears in that
-            environment's Connections, where it can be revoked.
+            {tx(
+              "Agents here can then launch, message and wait on threads there. It appears in that environment's Connections, where it can be revoked.",
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -297,12 +323,12 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
             ) : null}
             {machine?.linked ? (
               <p className="text-xs text-muted-foreground">
-                Already linked. Linking again renews it with the access you pick.
+                {tx("Already linked. Linking again renews it with the access you pick.")}
               </p>
             ) : null}
             {needsAddress ? (
               <label className="block space-y-1.5">
-                <span className="block text-xs font-medium text-foreground">Address</span>
+                <span className="block text-xs font-medium text-foreground">{tx("Address")}</span>
                 <Input
                   value={address}
                   onChange={(event) => {
@@ -318,8 +344,11 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
                 />
                 {machine !== null ? (
                   <span className="block text-xs text-muted-foreground">
-                    This app has no address for {machine.label} that another machine can reach.
-                    Enter its https or Tailscale address.
+                    {locale !== "en"
+                      ? chineseTemplate(
+                          locale,
+                        )`此应用没有可供其他机器访问 ${machine.label} 的地址。请输入其 HTTPS 或 Tailscale 地址。`
+                      : `This app has no address for ${machine.label} that another machine can reach. Enter its https or Tailscale address.`}
                   </span>
                 ) : null}
               </label>
@@ -327,14 +356,16 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
             {needsAddress && address.trim() ? <LinkAddressWarning address={address} /> : null}
             {selected === null || canMint ? null : (
               <label className="block space-y-1.5">
-                <span className="block text-xs font-medium text-foreground">Pairing code</span>
+                <span className="block text-xs font-medium text-foreground">
+                  {tx("Pairing code")}
+                </span>
                 <Input
                   value={pairingCode}
                   onChange={(event) => setPairingCode(event.target.value)}
                   placeholder={
                     machine === null
-                      ? "From that environment's Connections, or t3 pair there"
-                      : "Paste the code"
+                      ? tx("From that environment's Connections, or t3 pair there")
+                      : tx("Paste the code")
                   }
                   disabled={busy}
                   autoComplete="one-time-code"
@@ -343,8 +374,11 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
                 />
                 {machine !== null ? (
                   <span className="block text-xs text-muted-foreground">
-                    Create a link on {machine.label}: Settings → Connections → Create link, then
-                    paste its code here.
+                    {locale !== "en"
+                      ? chineseTemplate(
+                          locale,
+                        )`在 ${machine.label} 上打开“设置 → 连接 → 创建链接”，然后将配对码粘贴到这里。`
+                      : `Create a link on ${machine.label}: Settings → Connections → Create link, then paste its code here.`}
                   </span>
                 ) : null}
               </label>
@@ -354,10 +388,10 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
         </DialogPanel>
         <DialogFooter variant="bare">
           <DialogClose disabled={busy} render={<Button variant="outline" type="button" />}>
-            Cancel
+            {tx("Cancel")}
           </DialogClose>
           <Button form={formId} type="submit" disabled={busy || !ready}>
-            {busy ? "Linking…" : "Link"}
+            {busy ? tx("Linking…") : tx("Link")}
           </Button>
         </DialogFooter>
       </DialogPopup>

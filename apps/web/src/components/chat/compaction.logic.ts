@@ -1,3 +1,6 @@
+import { chineseText } from "@t3tools/shared/chineseUi";
+import type { ResolvedAppLocale } from "@t3tools/shared/appLocale";
+import { translateWebMessage } from "~/i18n/messages";
 import type { ProviderDriverKind, ProviderInstanceId } from "@t3tools/contracts";
 import {
   resolveSelectableProviderInstanceEntry,
@@ -34,9 +37,16 @@ export function hasAvailableCompactionProvider(input: {
   );
 }
 
-export function formatContextWindowCompactionMessage(autoCompactThreshold?: number | null): string {
+export function formatContextWindowCompactionMessage(
+  autoCompactThreshold?: number | null,
+  locale: ResolvedAppLocale = "en",
+): string {
   if (typeof autoCompactThreshold === "number" && autoCompactThreshold > 0) {
-    return `Compacts automatically at about ${autoCompactThreshold.toLocaleString("en-US")} tokens.`;
+    return translateWebMessage(locale, "usage.details.autoCompactAt", {
+      tokens: autoCompactThreshold.toLocaleString(locale),
+    });
   }
-  return "Context compacts automatically when needed.";
+  return locale !== "en"
+    ? chineseText(locale, "需要时会自动压缩上下文。")
+    : "Context compacts automatically when needed.";
 }

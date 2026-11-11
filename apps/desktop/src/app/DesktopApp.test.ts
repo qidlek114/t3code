@@ -49,6 +49,7 @@ import * as DesktopRendererHistory from "../telemetry/DesktopRendererHistory.ts"
 import * as DesktopUpdates from "../updates/DesktopUpdates.ts";
 import * as DesktopApplicationMenu from "../window/DesktopApplicationMenu.ts";
 import * as DesktopWindow from "../window/DesktopWindow.ts";
+import * as DesktopTray from "../window/DesktopTray.ts";
 import * as DesktopWslBackend from "../wsl/DesktopWslBackend.ts";
 
 import * as BrowserImport from "../preview/BrowserImport/BrowserImport.ts";
@@ -225,6 +226,14 @@ it.effect.each([false, true])(
             Layer.mock(DesktopSshEnvironment.DesktopSshEnvironment, {}),
             Layer.mock(DesktopSshPasswordPrompts.DesktopSshPasswordPrompts, {}),
             Layer.mock(DesktopTelemetryPublisher.DesktopTelemetryPublisher, {}),
+            Layer.mock(DesktopTray.DesktopTray, {
+              markQuitRequested: () => {
+                throw new Error("unexpected tray quit request");
+              },
+              shouldHideOnClose: () => {
+                throw new Error("unexpected tray close policy lookup");
+              },
+            }),
             Layer.mock(DesktopWebLinks.DesktopWebLinks, {}),
             Layer.mock(DesktopWslEnvironment.DesktopWslEnvironment, {}),
             Layer.mock(ElectronMenu.ElectronMenu, {}),

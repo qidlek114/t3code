@@ -1,3 +1,5 @@
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, RunId, ThreadId } from "@t3tools/contracts";
 import { useState } from "react";
@@ -13,6 +15,7 @@ import { toastManager } from "../ui/toast";
 
 /** Force stop for an agent that no longer answers Stop; shared by every place that offers it. */
 export function useForceStopThread(environmentId: EnvironmentId) {
+  const { locale: incrementalLocale, t } = useI18n();
   const forceStop = useAtomCommand(orchestrationEnvironment.forceStopThread);
   const permitted = useAtomValue(
     orchestrationEnvironment.forceStopThread.permissionAtom(environmentId),
@@ -35,7 +38,7 @@ export function useForceStopThread(environmentId: EnvironmentId) {
       const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
-        title: "Could not force stop the agent",
+        title: translateWebSource(incrementalLocale, "Could not force stop the agent"),
         description: error instanceof Error ? error.message : undefined,
       });
       return;
@@ -44,14 +47,27 @@ export function useForceStopThread(environmentId: EnvironmentId) {
     if (result.value.outcome === "releasing") {
       toastManager.add({
         type: "info",
-        title: "Turn stopped; the agent is still shutting down",
+        title: translateWebSource(
+          incrementalLocale,
+          "Turn stopped; the agent is still shutting down",
+        ),
       });
     }
     if (result.value.outcome === "shared") {
       toastManager.add({
         type: "info",
-        title: "Turn stopped; the agent process kept running",
-        description: `It is shared with ${others === 0 ? "other" : others} working ${others === 1 ? "thread" : "threads"}. Stop those to free it.`,
+        title: translateWebSource(
+          incrementalLocale,
+          "Turn stopped; the agent process kept running",
+        ),
+        description: t(
+          others === 0
+            ? "agentStop.sharedUnknown"
+            : others === 1
+              ? "agentStop.sharedOne"
+              : "agentStop.sharedMany",
+          { count: others },
+        ),
       });
     }
   };

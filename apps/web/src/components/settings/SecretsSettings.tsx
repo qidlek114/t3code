@@ -1,3 +1,7 @@
+import { LocalizedText } from "~/i18n/LocalizedText";
+import { chineseTemplate } from "@t3tools/shared/chineseUi";
+import { translateWebSource } from "../../i18n/messages";
+import { useI18n } from "../../i18n/WebI18nContext";
 import type { EnvironmentId, SecretProviderConfig, SecretProviderId } from "@t3tools/contracts";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
@@ -35,6 +39,9 @@ const SECRET_PROVIDER_KINDS: Readonly<
 };
 
 export function SecretsSettingsPanel() {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
+
   const { scope, environment } = useSettingsScope();
   const connected = environment?.connection.phase === "connected";
   return (
@@ -44,7 +51,11 @@ export function SecretsSettingsPanel() {
       environment.serverConfig.secretProviderSettings !== true ? (
         <SettingsSection {...searchableSetting("secret-providers")}>
           <p className="px-4 py-3 text-sm text-muted-foreground">
-            Update T3 Code on {environment.label} to manage its secret providers.
+            {locale !== "en"
+              ? chineseTemplate(
+                  locale,
+                )`更新 ${environment.label} 上的 T3 Code，以管理其密钥提供商。`
+              : `Update T3 Code on ${environment.label} to manage its secret providers.`}
           </p>
         </SettingsSection>
       ) : connected ? (
@@ -56,7 +67,9 @@ export function SecretsSettingsPanel() {
       ) : (
         <SettingsSection {...searchableSetting("secret-providers")}>
           <p className="px-4 py-3 text-sm text-muted-foreground">
-            Connect an environment to manage the secret providers its provider variables read from.
+            {tx(
+              "Connect an environment to manage the secret providers its provider variables read from.",
+            )}
           </p>
         </SettingsSection>
       )}
@@ -71,6 +84,8 @@ function EnvironmentSecretProviders({
   readonly environment: EnvironmentPresentation;
   readonly projectScoped: boolean;
 }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   const environmentId = environment.environmentId;
   const sessionState = useEnvironmentSessionState(environmentId);
   // The server requires the same grant for secret providers as for provider settings.
@@ -103,14 +118,14 @@ function EnvironmentSecretProviders({
           !readOnly ? (
             <Button size="xs" variant="outline" onClick={() => setDialog({ mode: "add" })}>
               <PlusIcon className="size-3" aria-hidden />
-              Add provider
+              {tx("Add provider")}
             </Button>
           ) : null
         }
       >
         {projectScoped ? (
           <p className="px-4 pt-3 text-xs text-muted-foreground">
-            Environment-wide setting. Select an environment to change it.
+            {tx("Environment-wide setting. Select an environment to change it.")}
           </p>
         ) : null}
         {entries.length === 0 ? (
@@ -142,12 +157,14 @@ function EnvironmentSecretProviders({
                       <span className="shrink-0">{kind.name} ·</span>
                       <RedactedSensitiveText
                         value={classified.account}
-                        ariaLabel="Toggle account visibility"
-                        revealTooltip="Click to reveal account"
-                        hideTooltip="Click to hide account"
+                        ariaLabel={tx("Toggle account visibility")}
+                        revealTooltip={tx("Click to reveal account")}
+                        hideTooltip={tx("Click to hide account")}
                         className="max-w-full truncate"
                       />
                     </span>
+                  ) : locale !== "en" ? (
+                    chineseTemplate(locale)`不支持的提供商（${config.kind}）`
                   ) : (
                     `Unsupported provider (${config.kind})`
                   )
@@ -161,7 +178,7 @@ function EnvironmentSecretProviders({
                           variant="ghost"
                           onClick={() => setDialog({ mode: "edit", id })}
                         >
-                          Edit
+                          {tx("Edit")}
                         </Button>
                       ) : null}
                       <RemoveSecretProviderButton
@@ -202,20 +219,26 @@ function RemoveSecretProviderButton({
   readonly label: string;
   readonly onConfirm: () => void;
 }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   const [open, setOpen] = useState(false);
   return (
     <>
       <Button size="xs" variant="ghost" onClick={() => setOpen(true)}>
-        Remove
+        {tx("Remove")}
       </Button>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogPopup>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove {label}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {locale !== "en" ? chineseTemplate(locale)`移除 ${label}？` : `Remove ${label}?`}
+            </AlertDialogTitle>
             <SecretProviderUses environmentId={environmentId} id={id} label={label} />
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+            <AlertDialogClose render={<Button variant="outline" />}>
+              {tx("Cancel")}
+            </AlertDialogClose>
             <Button
               variant="destructive"
               onClick={() => {
@@ -223,7 +246,7 @@ function RemoveSecretProviderButton({
                 onConfirm();
               }}
             >
-              Remove provider
+              {tx("Remove provider")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>
@@ -245,14 +268,18 @@ function SecretProviderUses({
   if (uses.length === 0) {
     return (
       <AlertDialogDescription>
-        Nothing reads from {label}. The secrets themselves are untouched.
+        <LocalizedText source={"Nothing reads from "} />
+        {label}
+        <LocalizedText source={". The secrets themselves are untouched."} />
       </AlertDialogDescription>
     );
   }
   return (
     <>
       <AlertDialogDescription>
-        These read from {label} and will be unset. The secrets themselves are untouched.
+        <LocalizedText source={"These read from "} />
+        {label}
+        <LocalizedText source={" and will be unset. The secrets themselves are untouched."} />
       </AlertDialogDescription>
       <ul className="max-h-48 list-disc space-y-0.5 overflow-y-auto ps-5 text-sm wrap-anywhere">
         {uses.map((use) => (

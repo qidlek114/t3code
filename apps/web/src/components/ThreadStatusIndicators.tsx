@@ -1,4 +1,6 @@
+import { chineseText } from "@t3tools/shared/chineseUi";
 import { pipe } from "effect/Function";
+import type { ResolvedAppLocale } from "@t3tools/shared/appLocale";
 import {
   scopeProjectRef,
   scopedThreadKey,
@@ -6,6 +8,7 @@ import {
 } from "@t3tools/client-runtime/environment";
 import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePullRequests";
 import { useStableCallback } from "~/hooks/useStableCallback";
+import { useI18n } from "../i18n/WebI18nContext";
 
 import { pullRequestDetailToVcsStatus } from "@t3tools/client-runtime/state/pull-requests";
 import {
@@ -529,13 +532,14 @@ export function ThreadTerminalStatusButton({
   terminalIds: readonly string[];
   onThreadActivate: (threadRef: ScopedThreadRef) => void;
 }) {
+  const { t } = useI18n();
   const terminalId = terminalIds[0];
   if (terminalId === undefined) return null;
   const status = terminalStatusFromRunningIds(terminalIds);
-  const label =
-    terminalIds.length === 1
-      ? "1 terminal process running. Open terminal"
-      : `${terminalIds.length} terminal processes running. Open terminal`;
+  const label = t(
+    terminalIds.length === 1 ? "sidebar.terminalProcessOpenOne" : "sidebar.terminalProcessOpenMany",
+    { count: terminalIds.length },
+  );
   return (
     <Tooltip>
       <TooltipTrigger
@@ -751,7 +755,12 @@ export function ThreadRowLeadingStatus({ thread }: { thread: SidebarThreadSummar
   );
 }
 
+function terminalProcessRunningLabel(locale: ResolvedAppLocale): string {
+  return locale !== "en" ? chineseText(locale, "终端进程正在运行") : "Terminal process running";
+}
+
 export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSummary }) {
+  const { locale } = useI18n();
   const runningTerminalIds = useThreadRunningTerminalIds({
     environmentId: thread.environmentId,
     threadId: thread.id,
@@ -776,7 +785,7 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
             render={
               <span
                 role="img"
-                aria-label={terminalStatus.label}
+                aria-label={terminalProcessRunningLabel(locale)}
                 className={`inline-flex items-center justify-center ${terminalStatus.colorClass}`}
               />
             }
@@ -786,7 +795,7 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
               onAnimationStart={synchronizeTerminalPulse}
             />
           </TooltipTrigger>
-          <TooltipPopup side="top">{terminalStatus.label}</TooltipPopup>
+          <TooltipPopup side="top">{terminalProcessRunningLabel(locale)}</TooltipPopup>
         </Tooltip>
       ) : null}
       {isRemoteThread ? (

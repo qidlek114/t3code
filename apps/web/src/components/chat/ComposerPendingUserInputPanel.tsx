@@ -8,11 +8,23 @@ import type { PendingUserInputDraftAnswer } from "@t3tools/client-runtime/state/
 import { derivePendingUserInputProgress } from "../../pendingUserInput";
 import { CheckboxMark } from "../ui/checkbox";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
+import { useI18n, type WebTranslate } from "~/i18n/WebI18nContext";
 import { Kbd } from "../ui/kbd";
 import { cn } from "~/lib/utils";
 import { isInSideChatPane } from "~/lib/sideChatPane";
 import { ComposerBanner } from "./ComposerBanner";
 import ChatMarkdown from "../ChatMarkdown";
+
+function localizePendingUserInputText(value: string, t: WebTranslate): string {
+  const messageKey = {
+    Yes: "common.yes",
+    No: "common.no",
+    Cancel: "common.cancel",
+    Continue: "common.continue",
+  } as const;
+  const key = messageKey[value as keyof typeof messageKey];
+  return key ? t(key) : value;
+}
 
 interface PendingUserInputPanelProps {
   pendingUserInputs: PendingUserInput[];
@@ -83,6 +95,7 @@ const ComposerPendingUserInputCard = memo(function ComposerPendingUserInputCard(
   onAdvance: () => void;
   onDismiss: (requestId: RuntimeRequestId) => void;
 }) {
+  const { t } = useI18n();
   // Message-mode requests remain answerable after their provider turn ends.
   const canRespond = prompt.responseCapability !== "not_resumable";
   const responseDisabled = disabled || isResponding || !canRespond;
@@ -201,9 +214,7 @@ const ComposerPendingUserInputCard = memo(function ComposerPendingUserInputCard(
     >
       <CollapsibleTrigger
         render={<ComposerBanner.Row render={<button type="button" />} />}
-        title={
-          isCollapsed ? "Show the question and its options" : "Hide the question and its options"
-        }
+        title={t(isCollapsed ? "composer.question.show" : "composer.question.hide")}
         data-pending-user-input-toggle={isCollapsed ? "collapsed" : "expanded"}
         className="px-4 py-1.5"
       >
@@ -236,8 +247,8 @@ const ComposerPendingUserInputCard = memo(function ComposerPendingUserInputCard(
           {prompt.dismissible ? (
             <ComposerBanner.Dismiss
               render={<span role="button" tabIndex={0} />}
-              aria-label="Dismiss question without answering"
-              title="Dismiss question without answering"
+              aria-label={t("composer.question.dismiss")}
+              title={t("composer.question.dismiss")}
               disabled={isResponding}
               data-pending-user-input-dismiss
               onClick={(event) => {
@@ -292,14 +303,14 @@ const ComposerPendingUserInputCard = memo(function ComposerPendingUserInputCard(
                     </span>
                     <div className="min-w-0 flex-1 flex flex-col gap-0.5">
                       <span className="text-sm font-medium" dir={textDirection(option.label)}>
-                        {option.label}
+                        {localizePendingUserInputText(option.label, t)}
                       </span>
                       {option.description && option.description !== option.label ? (
                         <span
                           className="text-secondary-label text-2xs"
                           dir={textDirection(option.description)}
                         >
-                          {option.description}
+                          {localizePendingUserInputText(option.description, t)}
                         </span>
                       ) : null}
                     </div>

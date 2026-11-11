@@ -1,3 +1,4 @@
+import { translateWebMessage } from "~/i18n/messages";
 import type { EnvironmentId, UsageLimitsReport } from "@t3tools/contracts";
 import type { TimestampFormat } from "@t3tools/contracts/settings";
 import { limitsNotice } from "@t3tools/shared/usageLimits";
@@ -11,6 +12,8 @@ import { RedactedSensitiveText } from "../settings/RedactedSensitiveText";
 import { LimitWindows, ResetCredits } from "../usage/UsageLimits";
 import { ComposerBanner } from "./ComposerBanner";
 import type { ComposerBannerStackItem } from "./ComposerBannerStack";
+import { useI18n, type WebTranslate } from "../../i18n/WebI18nContext";
+import { translateWebSource } from "../../i18n/messages";
 
 function accountLabel(account: UsageLimitsReport["accounts"][number]): string {
   if (!account.instanceId) return account.label;
@@ -24,6 +27,7 @@ function accountLabel(account: UsageLimitsReport["accounts"][number]): string {
 }
 
 function AccountSummary({ account }: { readonly account: UsageLimitsReport["accounts"][number] }) {
+  const { t: controlsT } = useI18n();
   const label = accountLabel(account);
   return (
     <>
@@ -31,9 +35,9 @@ function AccountSummary({ account }: { readonly account: UsageLimitsReport["acco
         <RedactedSensitiveText
           key={label}
           value={label}
-          ariaLabel="Toggle account label visibility"
-          revealTooltip="Click to reveal account"
-          hideTooltip="Click to hide account"
+          ariaLabel={controlsT("chatControls.copy4")}
+          revealTooltip={controlsT("chatControls.copy5")}
+          hideTooltip={controlsT("chatControls.copy6")}
           className="max-w-full truncate align-bottom font-sans text-xs leading-normal"
         />
       ) : (
@@ -49,55 +53,66 @@ export function usageLimitsBannerItem(
   report: UsageLimitsReport,
   environmentId: EnvironmentId,
   onDismiss: () => void,
+  t: WebTranslate,
 ): ComposerBannerStackItem {
   const [first] = report.accounts;
   const single = report.accounts.length === 1 && first ? first : null;
   const summary = single ? (
     <AccountSummary account={single} />
   ) : (
-    `${report.accounts.length} accounts`
+    t("usage.limits.accounts", { count: report.accounts.length })
   );
   return {
     id,
     variant: "info",
     icon: <GaugeIcon />,
-    title: "Usage limits",
+    title: t("usage.limits.title"),
     description: summary,
-    dismissLabel: "Dismiss usage limits",
+    dismissLabel: t("usage.limits.dismiss"),
     onDismiss,
     children: <UsageLimitsBannerBody report={report} environmentId={environmentId} />,
   };
 }
 
-export function modelFallbackBannerItem({
-  fallbackModelName,
-  defaultProviderName,
-  defaultModelName,
-  resetsAt,
-  timestampFormat,
-  onUseDefault,
-  onDismiss,
-}: {
-  readonly fallbackModelName: string;
-  readonly defaultProviderName: string;
-  readonly defaultModelName: string;
-  readonly resetsAt: string | null;
-  readonly timestampFormat: TimestampFormat;
-  readonly onUseDefault: () => void;
-  readonly onDismiss: () => void;
-}): ComposerBannerStackItem {
+export function modelFallbackBannerItem(
+  {
+    fallbackModelName,
+    defaultProviderName,
+    defaultModelName,
+    resetsAt,
+    timestampFormat,
+    onUseDefault,
+    onDismiss,
+  }: {
+    readonly fallbackModelName: string;
+    readonly defaultProviderName: string;
+    readonly defaultModelName: string;
+    readonly resetsAt: string | null;
+    readonly timestampFormat: TimestampFormat;
+    readonly onUseDefault: () => void;
+    readonly onDismiss: () => void;
+  },
+  controlsT: WebTranslate = (key, values) => translateWebMessage("en", key, values),
+): ComposerBannerStackItem {
   return {
     id: "fallback-model",
     variant: "info",
     icon: <GaugeIcon />,
-    title: `Using ${fallbackModelName}`,
-    description: `${defaultProviderName} is out of usage${resetsAt ? ` · resets ${formatUpcomingTimestamp(resetsAt, timestampFormat)}` : ""}`,
+    title: controlsT("chatControls.usingModel", { model: fallbackModelName }),
+    description: controlsT("chatControls.outOfUsage", {
+      provider: defaultProviderName,
+      reset: resetsAt
+        ? controlsT("chatControls.resetAt", {
+            time: formatUpcomingTimestamp(resetsAt, timestampFormat),
+          })
+        : "",
+    }),
     actions: (
       <Button size="xs" variant="ghost" onClick={onUseDefault}>
-        Use {defaultModelName}
+        {controlsT("chatControls.useModel", { model: defaultModelName })}
       </Button>
     ),
-    dismissLabel: "Dismiss fallback model notice",
+    dismissLabel: controlsT("chatControls.copy7"),
     onDismiss,
   };
 }
@@ -109,6 +124,8 @@ function UsageLimitsBannerBody({
   readonly report: UsageLimitsReport;
   readonly environmentId: EnvironmentId;
 }) {
+  const { locale: uiLocale } = useI18n();
+  const { locale } = useI18n();
   const now = Date.parse(report.createdAt);
   return (
     <ComposerBanner.Scroll>
@@ -127,7 +144,9 @@ function UsageLimitsBannerBody({
                 </span>
               ) : null}
               {notice ? (
-                <span className="text-xs text-muted-foreground">{notice}</span>
+                <span className="text-xs text-muted-foreground">
+                  {translateWebSource(locale, notice)}
+                </span>
               ) : (
                 <LimitWindows
                   compact
@@ -144,7 +163,7 @@ function UsageLimitsBannerBody({
                   className="self-start"
                   onClick={() => void ensureLocalApi().shell.openExternal(externalUsage.url)}
                 >
-                  Manage usage
+                  {translateWebSource(uiLocale, "Manage usage")}
                 </Button>
               ) : null}
               {resetCreditInput && account.limits.resetCredits ? (
@@ -160,7 +179,7 @@ function UsageLimitsBannerBody({
         })}
         {report.notices.map((notice) => (
           <span key={notice} className="text-xs text-muted-foreground">
-            {notice}
+            {translateWebSource(locale, notice)}
           </span>
         ))}
       </ComposerBanner.Body>

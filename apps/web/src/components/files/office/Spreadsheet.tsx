@@ -1,3 +1,6 @@
+import { useStableCallback } from "~/hooks/useStableCallback";
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import * as Schema from "effect/Schema";
 import { observeResize } from "~/lib/observeResize";
 import { useEffect, useRef, useState } from "react";
@@ -48,6 +51,11 @@ export default function Spreadsheet(props: {
   onDetails: (text: string) => void;
   onError: (cause: unknown) => void;
 }) {
+  const { locale, t } = useI18n();
+  const translateCount = useStableCallback((count: string | number) =>
+    t("files.residual.sheets", { count }),
+  );
+  const translateSource = useStableCallback((source: string) => translateWebSource(locale, source));
   const { onError, bytes: source, onDetails } = props;
   const [opened, setOpened] = useState<Opened>();
   const [error, setError] = useState("");
@@ -68,9 +76,9 @@ export default function Spreadsheet(props: {
     void engine
       .call("open", { bytes }, { transfer: [bytes], signal: controller.signal })
       .then((value) => {
-        if (!value) throw new Error("This workbook has no visible sheets.");
+        if (!value) throw new Error(translateSource("This workbook has no visible sheets."));
         setOpened({ ...value, engine });
-        onDetails(`${value.tabs.length} sheets`);
+        onDetails(translateCount(value.tabs.length));
       })
       .catch(fail);
     return () => {
@@ -78,7 +86,12 @@ export default function Spreadsheet(props: {
       picking.current?.abort();
       engine.close();
     };
-  }, [source, onDetails, onError]);
+  }, [source, onDetails, onError, translateSource, translateCount]);
+  const details = opened ? t("files.residual.sheets", { count: opened.tabs.length }) : null;
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Refresh the parent caption when its localized text changes without restarting the document worker.
+  useEffect(() => {
+    if (details !== null) onDetails(details);
+  }, [details, onDetails]);
   const show = (sheet: number, target?: CellAddr) => {
     if (!opened) return;
     picking.current?.abort();
@@ -92,7 +105,8 @@ export default function Spreadsheet(props: {
         setOpened({ ...opened, layout, target });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setError("This sheet could not be opened.");
+        if (!controller.signal.aborted)
+          setError(translateSource("This sheet could not be opened."));
       });
   };
   if (!opened) return <FileSurfaceLoading />;
@@ -111,7 +125,7 @@ export default function Spreadsheet(props: {
       />
       <div
         role="tablist"
-        aria-label="Sheets"
+        aria-label={translateWebSource(locale, "Sheets")}
         className="flex h-9 shrink-0 items-center gap-1 overflow-x-auto border-t border-border px-2"
         onKeyDown={(event) => {
           const current = opened.tabs.findIndex(
@@ -158,6 +172,8 @@ function SpreadsheetGrid(props: {
   initialCell: CellAddr | undefined;
   onNavigate: (sheet: string, cell: CellAddr) => void;
 }) {
+  const { locale } = useI18n();
+  const translateSource = useStableCallback((source: string) => translateWebSource(locale, source));
   const { onNavigate, layout, engine, initialCell } = props;
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -257,7 +273,9 @@ function SpreadsheetGrid(props: {
             }
             received = order;
             if (!reply) {
-              setNotice("These cells could not be drawn. Try scrolling to another area.");
+              setNotice(
+                translateSource("These cells could not be drawn. Try scrolling to another area."),
+              );
               return;
             }
             setNotice("");
@@ -268,7 +286,7 @@ function SpreadsheetGrid(props: {
           })
           .catch((cause: unknown) => {
             if (!isSupersededError(cause) && !controller.signal.aborted)
-              setNotice("These cells could not be drawn.");
+              setNotice(translateSource("These cells could not be drawn."));
           });
       }
       if (
@@ -464,7 +482,7 @@ function SpreadsheetGrid(props: {
         right: Math.min(selected.right, Math.max(selected.left, used?.right ?? 0)),
       };
       if ((clipped.bottom - clipped.top + 1) * (clipped.right - clipped.left + 1) > 200_000) {
-        setNotice("Select fewer than 200,000 cells to copy.");
+        setNotice(translateSource("Select fewer than 200,000 cells to copy."));
         return;
       }
       void engine
@@ -474,7 +492,8 @@ function SpreadsheetGrid(props: {
           return navigator.clipboard.writeText(text);
         })
         .catch(() => {
-          if (!controller.signal.aborted) setNotice("The selected cells could not be copied.");
+          if (!controller.signal.aborted)
+            setNotice(translateSource("The selected cells could not be copied."));
         });
     };
     const key = (event: KeyboardEvent) => {
@@ -534,7 +553,7 @@ function SpreadsheetGrid(props: {
       root.removeEventListener("pointerup", pointerUp);
       root.removeEventListener("pointercancel", cancel);
     };
-  }, [engine, layout, initialCell]);
+  }, [engine, layout, initialCell, translateSource]);
   return (
     <div className="relative flex min-h-0 flex-1">
       <div

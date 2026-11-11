@@ -284,41 +284,67 @@ export function formatRelativeTimeLabel(isoDate: string, nowMs: number = Date.no
   return relative.suffix ? `${relative.value} ${relative.suffix}` : relative.value;
 }
 
-export function formatElapsedDurationLabel(isoDate: string, nowMs: number = Date.now()): string {
+export interface DurationLabelText {
+  readonly justNow: string;
+  readonly expired: string;
+  readonly expiresInAMoment: string;
+  readonly formatUnit: (count: number, unit: "s" | "m" | "h" | "d") => string;
+  readonly expiresIn: (duration: string) => string;
+}
+
+const defaultDurationText: DurationLabelText = {
+  justNow: "just now",
+  expired: "Expired",
+  expiresInAMoment: "Expires in a moment",
+  formatUnit: (count, unit) => `${count}${unit}`,
+  expiresIn: (duration) => `Expires in ${duration}`,
+};
+
+export function formatElapsedDurationLabel(
+  isoDate: string,
+  nowMs: number = Date.now(),
+  text: DurationLabelText = defaultDurationText,
+): string {
   const date = parseTimestampDate(isoDate);
   if (!date) return "";
   const diffMs = nowMs - date.getTime();
-  if (diffMs <= 0) return "just now";
+  if (diffMs <= 0) return text.justNow;
 
   const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 5) return "just now";
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 5) return text.justNow;
+  if (seconds < 60) return text.formatUnit(seconds, "s");
 
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 60) return text.formatUnit(minutes, "m");
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return text.formatUnit(hours, "h");
 
   const days = Math.floor(hours / 24);
-  return `${days}d`;
+  return text.formatUnit(days, "d");
 }
 
 /** Pass nowMs to match a parent-driven render tick. */
-export function formatExpiresInLabel(isoDate: string, nowMs: number = Date.now()): string {
+export function formatExpiresInLabel(
+  isoDate: string,
+  nowMs: number = Date.now(),
+  text: DurationLabelText = defaultDurationText,
+): string {
   const date = parseTimestampDate(isoDate);
   if (!date) return "";
   const diffMs = date.getTime() - nowMs;
-  if (diffMs <= 0) return "Expired";
+  if (diffMs <= 0) return text.expired;
 
   const totalSeconds = Math.floor(diffMs / 1000);
-  if (totalSeconds < 5) return "Expires in a moment";
-  if (totalSeconds < 60) return `Expires in ${totalSeconds}s`;
+  if (totalSeconds < 5) return text.expiresInAMoment;
+  if (totalSeconds < 60) return text.expiresIn(text.formatUnit(totalSeconds, "s"));
 
   if (totalSeconds < 3600) {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return seconds === 0 ? `Expires in ${minutes}m` : `Expires in ${minutes}m ${seconds}s`;
+    return seconds === 0
+      ? text.expiresIn(text.formatUnit(minutes, "m"))
+      : text.expiresIn(`${text.formatUnit(minutes, "m")} ${text.formatUnit(seconds, "s")}`);
   }
 
   if (totalSeconds < 86_400) {
@@ -326,22 +352,24 @@ export function formatExpiresInLabel(isoDate: string, nowMs: number = Date.now()
     const rem = totalSeconds % 3600;
     const minutes = Math.floor(rem / 60);
     const seconds = rem % 60;
-    const parts = [`${hours}h`];
-    if (minutes > 0) parts.push(`${minutes}m`);
-    if (seconds > 0) parts.push(`${seconds}s`);
-    return `Expires in ${parts.join(" ")}`;
+    const parts = [text.formatUnit(hours, "h")];
+    if (minutes > 0) parts.push(text.formatUnit(minutes, "m"));
+    if (seconds > 0) parts.push(text.formatUnit(seconds, "s"));
+    return text.expiresIn(parts.join(" "));
   }
 
   const days = Math.floor(totalSeconds / 86_400);
   const remAfterDays = totalSeconds % 86_400;
-  if (remAfterDays === 0) return `Expires in ${days}d`;
+  if (remAfterDays === 0) return text.expiresIn(text.formatUnit(days, "d"));
   const hours = Math.floor(remAfterDays / 3600);
   const rem = remAfterDays % 3600;
   const minutes = Math.floor(rem / 60);
   const seconds = rem % 60;
   const tail: string[] = [];
-  if (hours > 0) tail.push(`${hours}h`);
-  if (minutes > 0) tail.push(`${minutes}m`);
-  if (seconds > 0) tail.push(`${seconds}s`);
-  return tail.length > 0 ? `Expires in ${days}d ${tail.join(" ")}` : `Expires in ${days}d`;
+  if (hours > 0) tail.push(text.formatUnit(hours, "h"));
+  if (minutes > 0) tail.push(text.formatUnit(minutes, "m"));
+  if (seconds > 0) tail.push(text.formatUnit(seconds, "s"));
+  return tail.length > 0
+    ? text.expiresIn(`${text.formatUnit(days, "d")} ${tail.join(" ")}`)
+    : text.expiresIn(text.formatUnit(days, "d"));
 }

@@ -15,9 +15,16 @@ import * as ElectronShell from "../electron/ElectronShell.ts";
 import * as ElectronTheme from "../electron/ElectronTheme.ts";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import * as DesktopUpdates from "../updates/DesktopUpdates.ts";
+import * as DesktopClientSettings from "../settings/DesktopClientSettings.ts";
 
 import { createInitialDesktopUpdateState } from "../updates/updateMachine.ts";
-import { listen, resolveStartupRecoveryOffer } from "./DesktopStartupRecovery.ts";
+import {
+  buildStartupRecoveryHtml,
+  listen,
+  resolveStartupRecoveryOffer,
+  startupRecoveryReleaseUrl,
+} from "./DesktopStartupRecovery.ts";
+import { resolveStartupRecoveryMessages } from "./DesktopStartupRecoveryMessages.ts";
 
 const updateState = (patch: Partial<DesktopUpdateState>): DesktopUpdateState => ({
   ...createInitialDesktopUpdateState(
@@ -97,6 +104,43 @@ describe("resolveStartupRecoveryOffer", () => {
   });
 });
 
+describe("startup recovery locale", () => {
+  it("honors the saved language before the system locale", () => {
+    expect(resolveStartupRecoveryMessages("en", ["zh-CN"]).title).toBe("T3 Code could not start");
+    expect(resolveStartupRecoveryMessages("zh-CN", ["en-US"]).title).toBe("T3 Code 无法启动");
+    expect(resolveStartupRecoveryMessages("system", ["zh-Hans"]).title).toBe("T3 Code 无法启动");
+  });
+
+  it("localizes recovery actions while preserving and escaping diagnostic details", () => {
+    const html = buildStartupRecoveryHtml({
+      locale: "zh-CN",
+      appVersion: "0.1.6-zh.1",
+      failure: {
+        reason: "The server started but did not become ready in time.",
+        managedPolicy: false,
+        output: "<script>alert(1)</script>",
+      },
+      offer: { _tag: "Reinstall", version: "0.1.5" },
+      logDir: "/tmp/<logs>",
+    });
+    expect(html).toContain('<html lang="zh-CN">');
+    expect(html).toContain("服务器已启动，但未能及时就绪。");
+    expect(html).toContain("下载 0.1.5");
+    expect(html).toContain("复制详情");
+    expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+    expect(html).toContain("/tmp/&lt;logs&gt;");
+    expect(html).not.toContain("<script>");
+    expect(html).toContain('href="https://startup-recovery.invalid/reinstall"');
+  });
+});
+
+it("keeps recovery downloads on the Chinese fork", () => {
+  expect(startupRecoveryReleaseUrl()).toBe("https://github.com/qidlek114/t3code/releases");
+  expect(startupRecoveryReleaseUrl("0.1.5-zh.9")).toBe(
+    "https://github.com/qidlek114/t3code/releases/tag/v0.1.5-zh.9",
+  );
+});
+
 it.effect.each([
   { visible: false, started: false, closeMain: false },
   { visible: true, started: false, closeMain: false },
@@ -139,6 +183,7 @@ it.effect.each([
       yield* listen.pipe(
         Effect.provide(
           Layer.mergeAll(
+            DesktopClientSettings.layerTest(),
             FileSystem.layerNoop({
               readFileString: () => Effect.succeed("0.1.2"),
               writeFileString: () => Deferred.succeed(remembered, undefined).pipe(Effect.asVoid),
@@ -150,6 +195,7 @@ it.effect.each([
               path: { join: (...parts: string[]) => parts.join("/") },
             } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]),
             Layer.succeed(ElectronApp.ElectronApp, {
+              systemLocale: Effect.succeed("en-US"),
               on: (event: string, listener: (...args: readonly unknown[]) => void) =>
                 Effect.sync(() => {
                   appListeners.set(event, listener);

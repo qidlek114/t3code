@@ -1,3 +1,6 @@
+import { translateWebMessage } from "~/i18n/messages";
+import type { WebTranslate } from "~/i18n/WebI18nContext";
+import { useI18n } from "~/i18n/WebI18nContext";
 import {
   type EnvironmentId,
   type ProviderInstanceId,
@@ -65,7 +68,10 @@ export function hasProviderSetup(status: ServerProvider): boolean {
   );
 }
 
-export function getProviderStatusMessage(status: ServerProvider): string {
+export function getProviderStatusMessage(
+  status: ServerProvider,
+  controlsT: WebTranslate = (key, values) => translateWebMessage("en", key, values),
+): string {
   if (
     status.auth.status !== "unauthenticated" &&
     status.compatibilityAdvisory?.status === "broken" &&
@@ -76,21 +82,23 @@ export function getProviderStatusMessage(status: ServerProvider): string {
   if (status.message) return status.message;
   const providerName = status.displayName?.trim() || formatProviderDriverKindLabel(status.driver);
   if (!status.installed && hasProviderSetup(status)) {
-    return `Open provider setup to install ${formatProviderDriverKindLabel(status.driver)} on this environment.`;
+    return controlsT("chatControls.installProvider", {
+      provider: formatProviderDriverKindLabel(status.driver),
+    });
   }
   if (status.auth.status === "unauthenticated") {
     if (hasProviderSetup(status)) {
       return status.driver === "antigravity"
-        ? "Open provider setup to sign in with Google."
-        : "Open provider setup to sign in.";
+        ? controlsT("chatControls.copy53")
+        : controlsT("chatControls.copy54");
     }
-    return "Sign in via the CLI to authenticate again.";
+    return controlsT("chatControls.copy55");
   }
   return status.status === "ready"
-    ? "No models are available for this provider."
+    ? controlsT("chatControls.copy56")
     : status.status === "error"
-      ? `${providerName} provider is unavailable.`
-      : `${providerName} provider has limited availability.`;
+      ? controlsT("chatControls.providerUnavailable", { provider: providerName })
+      : controlsT("chatControls.providerLimited", { provider: providerName });
 }
 
 export const ProviderStatusBanner = memo(function ProviderStatusBanner({
@@ -104,9 +112,10 @@ export const ProviderStatusBanner = memo(function ProviderStatusBanner({
   onOpenProviderSetup?: (instanceId: ProviderInstanceId) => void;
   status: ServerProvider | null;
 }) {
+  const { t: controlsT } = useI18n();
   const canRefresh = useAtomValue(serverEnvironment.refreshProviders.permissionAtom(environmentId));
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
-    label: "Refresh provider status",
+    label: controlsT("providers.action.refresh"),
   });
   const refreshingRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -131,11 +140,18 @@ export const ProviderStatusBanner = memo(function ProviderStatusBanner({
   const isUnauthenticated = status.status === "error" && status.auth.status === "unauthenticated";
   const incompatible = getIncompatibleVersion(status);
   const title = isUnauthenticated
-    ? `${providerName} is unauthenticated`
+    ? controlsT("chatControls.unauthenticated", { provider: providerName })
     : incompatible
-      ? `${providerName} ${status.version ?? ""} is ${incompatible.status === "broken" ? "known to be broken" : "unsupported"}`
-      : `${providerName} provider status`;
-  const message = incompatible?.message ?? getProviderStatusMessage(status);
+      ? controlsT("chatControls.versionStatus", {
+          provider: providerName,
+          version: status.version ?? "",
+          status:
+            incompatible.status === "broken"
+              ? controlsT("chatControls.knownBroken")
+              : controlsT("chatControls.unsupported"),
+        })
+      : controlsT("chatControls.providerStatus", { provider: providerName });
+  const message = incompatible?.message ?? getProviderStatusMessage(status, controlsT);
   const isWarning =
     incompatible?.status !== "broken" && (status.status === "warning" || incompatible !== null);
 
@@ -160,25 +176,32 @@ export const ProviderStatusBanner = memo(function ProviderStatusBanner({
             <div className="flex flex-wrap items-center justify-end gap-3">
               {onOpenProviderSetup && hasProviderSetup(status) ? (
                 <InlineButton onClick={() => onOpenProviderSetup(status.instanceId)}>
-                  Open provider setup
+                  {controlsT("chatControls.copy32")}
                 </InlineButton>
               ) : null}
               <Button
-                aria-label={`Refresh ${providerName} provider status`}
+                aria-label={controlsT("chatControls.refreshNamedProviderStatus", {
+                  provider: providerName,
+                })}
                 disabled={!canRefresh || isRefreshing}
                 onClick={() => void refresh()}
                 size="xs"
                 variant="outline"
               >
                 <RefreshIcon />
-                {isRefreshing ? "Refreshing..." : "Refresh"}
+                {isRefreshing
+                  ? controlsT("chatControls.refreshingProvider")
+                  : controlsT("browserPreview.refresh")}
               </Button>
             </div>
           </div>
         </AlertDescription>
         <AlertAction>
           <Button
-            aria-label={`Dismiss ${providerName} provider ${status.status}`}
+            aria-label={controlsT("chatControls.dismissProviderStatus", {
+              provider: providerName,
+              status: providerStatusLabel(status.status, controlsT),
+            })}
             onClick={onDismiss}
             size="icon-xs"
             variant="ghost-muted"
@@ -190,3 +213,16 @@ export const ProviderStatusBanner = memo(function ProviderStatusBanner({
     </div>
   );
 });
+
+function providerStatusLabel(status: ServerProvider["status"], controlsT: WebTranslate): string {
+  switch (status) {
+    case "ready":
+      return controlsT("chatControls.stateReady");
+    case "warning":
+      return controlsT("chatControls.stateWarning");
+    case "error":
+      return controlsT("chatControls.stateError");
+    case "disabled":
+      return controlsT("chatControls.stateDisabled");
+  }
+}

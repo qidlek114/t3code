@@ -1,3 +1,5 @@
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { InlineAudioPreview } from "../files/InlineAudioPreview";
 import { filePreviewKind } from "@t3tools/shared/filePreview";
 import { remarkEnableOrderedListNumbers } from "@t3tools/shared/markdownPipeline";
@@ -106,10 +108,14 @@ function UserFileCard({
   readonly file: ChatFileAttachment;
   readonly copyMarkdown: string | undefined;
 }) {
+  const { t: residualT } = useI18n();
+  const { locale: incrementalLocale } = useI18n();
   const ctx = use(TimelineRowCtx);
   const pastedText = file.source?._tag === "pasted-text";
   const label = userMessageFileLabel(file);
-  const extension = /\.([a-z0-9]{1,8})$/i.exec(file.name)?.[1]?.toUpperCase() ?? "File";
+  const extension =
+    /\.([a-z0-9]{1,8})$/i.exec(file.name)?.[1]?.toUpperCase() ??
+    translateWebSource(incrementalLocale, "File");
   const identity = (
     <>
       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background/60">
@@ -121,7 +127,7 @@ function UserFileCard({
         </span>
         <span className="block text-xs text-muted-foreground tabular-nums">
           {file.downloadable === false ? (
-            "Sending…"
+            translateWebSource(incrementalLocale, "Sending…")
           ) : (
             <>
               {!pastedText && `${extension} · `}
@@ -140,7 +146,12 @@ function UserFileCard({
       {file.downloadable === false ? (
         <>
           <div className="flex min-w-0 flex-1 items-center gap-3">{identity}</div>
-          <Button size="icon-xs" variant="ghost-muted" disabled aria-label="Sending attachment">
+          <Button
+            size="icon-xs"
+            variant="ghost-muted"
+            disabled
+            aria-label={translateWebSource(incrementalLocale, "Sending attachment")}
+          >
             <DownloadIcon />
           </Button>
         </>
@@ -148,7 +159,7 @@ function UserFileCard({
         <>
           <button
             type="button"
-            aria-label={`Preview ${label}`}
+            aria-label={residualT("chatResidual.preview", { name: label })}
             onClick={() => ctx.onFileOpen(file)}
             className="group/file focus-visible:ring-ring/70 flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl text-left focus-visible:ring-2 focus-visible:ring-inset focus-visible:outline-none"
           >
@@ -160,14 +171,17 @@ function UserFileCard({
                 <Button
                   size="icon-xs"
                   variant="ghost-muted"
-                  aria-label={`Download ${label}`}
+                  aria-label={residualT("chatResidual.download", { name: label })}
                   onClick={() => ctx.onFileDownload(file)}
                 />
               }
             >
               <DownloadIcon />
             </TooltipTrigger>
-            <TooltipPopup side="top">Download {label}</TooltipPopup>
+            <TooltipPopup side="top">
+              {residualT("chatResidual.copy46")}
+              {label}
+            </TooltipPopup>
           </Tooltip>
         </>
       )}
@@ -279,6 +293,7 @@ function UserMessageContent({ row }: { row: Extract<TimelineRow, { kind: "messag
 
 /** Automation prompts are long, repeated runbooks; a folded bubble keeps them out of the way. */
 function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "message" }> }) {
+  const { t: residualT } = useI18n();
   const ctx = use(TimelineRowCtx);
   const [expanded, setExpanded] = useState(false);
   const revealRef = findRevealRef(() => setExpanded(true));
@@ -309,10 +324,10 @@ function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "mess
           expanded && "w-full",
         )}
       >
-        <MessageAuthorHeading>Automation</MessageAuthorHeading>
+        <MessageAuthorHeading>{residualT("chatResidual.copy47")}</MessageAuthorHeading>
         <FoldedMessageHeader
           icon={CalendarClockIcon}
-          label="Automation"
+          label={residualT("chatResidual.copy47")}
           summary={summary}
           expanded={expanded}
           onToggle={() => setExpanded((value) => !value)}
@@ -339,7 +354,7 @@ function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "mess
                 search={{ environmentId: ctx.activeThreadEnvironmentId, taskId: scheduledTaskId }}
                 className="rounded-sm text-xs text-muted-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring"
               >
-                Open automation
+                {residualT("chatResidual.copy48")}
               </Link>
             ) : null}
             <TimelineRowTimestamp
@@ -355,7 +370,7 @@ function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "mess
               {promptLink !== null && (
                 <MessageCopyButton
                   text={promptLink}
-                  label="Copy prompt link"
+                  label={residualT("chatResidual.copy49")}
                   icon={LinkIcon}
                   variant="ghost"
                 />
@@ -426,6 +441,8 @@ function UserMessageProjectedStatus({ row }: { row: Extract<TimelineRow, { kind:
 }
 
 function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" }> }) {
+  const { t: residualT } = useI18n();
+  const { locale: incrementalLocale } = useI18n();
   const ctx = use(TimelineRowCtx);
   const { onImageExpand, onFileOpen } = ctx;
   const coarsePointer = useMediaQuery({ pointer: "coarse" });
@@ -722,7 +739,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
               <button
                 type="button"
                 className="block h-full w-full cursor-zoom-in"
-                aria-label={`Preview ${image.name}`}
+                aria-label={residualT("chatResidual.preview", { name: image.name })}
                 onClick={() => {
                   const preview = buildExpandedImagePreview(regularImages, image.id);
                   if (!preview) return;
@@ -788,7 +805,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
     >
       {folded && senderThreadId ? (
         <InlineButton onClick={() => ctx.onOpenThread(senderThreadId)} tone="muted">
-          Open thread
+          {residualT("chatResidual.copy50")}
         </InlineButton>
       ) : null}
       <Tooltip>
@@ -819,7 +836,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
         {promptLink !== null && (
           <MessageCopyButton
             text={promptLink}
-            label="Copy prompt link"
+            label={residualT("chatResidual.copy49")}
             icon={LinkIcon}
             variant="ghost"
           />
@@ -837,7 +854,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
           className="me-1 text-2xs text-muted-foreground/70"
           data-user-message-attribution="t3code"
         >
-          Sent by T3 Code
+          {residualT("chatResidual.copy51")}
         </p>
       ) : null}
       {/* The row's heading already names the guest for screen readers. */}
@@ -857,7 +874,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
       {mediaAboveText ? (
         <div className="flex max-w-[80%] justify-end">
           {/* The heading leads the media so screen readers reach it before the images. */}
-          <MessageAuthorHeading>You</MessageAuthorHeading>
+          <MessageAuthorHeading>{residualT("chatResidual.copy52")}</MessageAuthorHeading>
           {mediaBlock}
         </div>
       ) : null}
@@ -880,8 +897,8 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
             {folded
               ? senderLabel
               : userMessage.guestName === undefined
-                ? "You"
-                : `${userMessage.guestName} (guest)`}
+                ? residualT("chatResidual.copy52")
+                : residualT("chatCorrection.guestName", { name: userMessage.guestName })}
           </MessageAuthorHeading>
         )}
         {folded ? (
@@ -955,7 +972,9 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                         <span className="block truncate">{label}</span>
                         {file.downloadable === false || pastedText ? (
                           <span className="block text-xs text-muted-foreground tabular-nums">
-                            {file.downloadable === false ? "Sending…" : formatBytes(file.sizeBytes)}
+                            {file.downloadable === false
+                              ? translateWebSource(incrementalLocale, "Sending…")
+                              : formatBytes(file.sizeBytes)}
                           </span>
                         ) : null}
                       </span>
@@ -966,7 +985,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                       <div key={file.id} className="flex min-w-0 items-center gap-1">
                         <button
                           type="button"
-                          aria-label={`Preview ${label}`}
+                          aria-label={residualT("chatResidual.preview", { name: label })}
                           onClick={() => ctx.onFileOpen(file)}
                           className="focus-visible:ring-ring/70 flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md py-1 text-left text-sm hover:underline focus-visible:ring-2 focus-visible:ring-inset focus-visible:outline-none"
                         >
@@ -979,14 +998,17 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                               <Button
                                 size="icon-xs"
                                 variant="ghost-muted"
-                                aria-label={`Download ${label}`}
+                                aria-label={residualT("chatResidual.download", { name: label })}
                                 onClick={() => ctx.onFileDownload(file)}
                               />
                             }
                           >
                             <DownloadIcon />
                           </TooltipTrigger>
-                          <TooltipPopup side="top">Download {label}</TooltipPopup>
+                          <TooltipPopup side="top">
+                            {residualT("chatResidual.copy46")}
+                            {label}
+                          </TooltipPopup>
                         </Tooltip>
                       </div>
                     );
@@ -1060,6 +1082,7 @@ function UserMessageIntentMarker({
   readonly intent: "steer" | "promoted_queued_to_steer";
   readonly unread: boolean;
 }) {
+  const { t: residualT } = useI18n();
   return (
     <Tooltip>
       <TooltipTrigger
@@ -1071,14 +1094,14 @@ function UserMessageIntentMarker({
         }
       >
         <Redo2Icon aria-hidden="true" className="size-3" />
-        {unread ? "Steer · waiting to be read" : "Steer"}
+        {unread ? residualT("localization.steerUnread") : residualT("chatResidual.copy53")}
       </TooltipTrigger>
       <TooltipPopup side="top">
         {unread
-          ? "Waiting for the agent to read this. It reads steers between steps, after a running command finishes."
+          ? residualT("localization.steerUnreadHint")
           : intent === "promoted_queued_to_steer"
-            ? "Originally queued, then promoted to steer the active turn"
-            : "Steered the active turn"}
+            ? residualT("chatCorrection.promotedSteer")
+            : residualT("chatCorrection.steered")}
       </TooltipPopup>
     </Tooltip>
   );
@@ -1091,6 +1114,7 @@ function RevertUserMessageButton({
   turnCount: number;
   messageId: MessageId;
 }) {
+  const { t: residualT } = useI18n();
   const ctx = use(TimelineRowCtx);
   const activity = use(TimelineRowActivityCtx);
 
@@ -1104,13 +1128,13 @@ function RevertUserMessageButton({
             variant="ghost"
             disabled={activity.isRevertingCheckpoint || activity.isWorking}
             onClick={() => ctx.onRevertToTurnCount(turnCount, messageId)}
-            aria-label="Edit from here"
+            aria-label={residualT("chatResidual.copy54")}
           />
         }
       >
         <PencilIcon className="size-3" />
       </TooltipTrigger>
-      <TooltipPopup side="top">Edit from here</TooltipPopup>
+      <TooltipPopup side="top">{residualT("chatResidual.copy54")}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -1126,6 +1150,7 @@ const CollapsibleUserMessageBody = memo(function CollapsibleUserMessageBody(prop
   markdownCwd: string | undefined;
   collapsible?: boolean;
 }) {
+  const { locale: incrementalLocale } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const revealForFind = () => setExpanded(true);
   const revealRef = findRevealRef(revealForFind);
@@ -1176,7 +1201,9 @@ const CollapsibleUserMessageBody = memo(function CollapsibleUserMessageBody(prop
               onClick={() => setExpanded((value) => !value)}
               className="-ml-1"
             >
-              {expanded ? "Show less" : "Show full message"}
+              {expanded
+                ? translateWebSource(incrementalLocale, "Show less")
+                : translateWebSource(incrementalLocale, "Show full message")}
             </Button>
           ) : null}
         </div>

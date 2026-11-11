@@ -1,3 +1,4 @@
+import { translateWebExtraSource } from "~/i18n/webExtraMessages";
 import {
   type EnvironmentThreadShell,
   type PendingSubagentRequest,
@@ -39,6 +40,8 @@ import {
   type ThreadNotificationObservation,
 } from "./ThreadNotificationCoordinator.logic";
 import { toastManager } from "./ui/toast";
+import { readWebI18n } from "../i18n/readWebI18n";
+import { translateWebSource } from "../i18n/messages";
 
 interface NotificationState extends ThreadNotificationObservation {
   readonly raw: OrchestrationV2ThreadShell;
@@ -130,7 +133,9 @@ export function startThreadNotifications(
       environmentId?: string;
       threadId?: string;
     };
-    const title =
+    const { locale } = readWebI18n();
+    const title = translateWebExtraSource(
+      locale,
       kind === "completion"
         ? "Thread completed"
         : status === "approval"
@@ -141,7 +146,8 @@ export function startThreadNotifications(
               ? "Thread failed"
               : status === "request"
                 ? "Guest request"
-                : "Input needed";
+                : "Input needed",
+    );
     if (hasNotificationSound(mode)) {
       void playNotificationSound(kind, () =>
         hasNotificationSound(getClientSettings().notificationMode),
@@ -175,7 +181,7 @@ export function startThreadNotifications(
             ),
         },
         actionProps: {
-          children: "Open thread",
+          children: translateWebSource(locale, "Open thread"),
           onClick: () => {
             toastManager.close(toastId);
             void router.navigate({

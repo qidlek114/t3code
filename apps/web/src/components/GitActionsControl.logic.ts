@@ -1,3 +1,5 @@
+import type { ResolvedAppLocale } from "@t3tools/shared/appLocale";
+import { translateWebMessage, translateWebSource } from "~/i18n/messages";
 import type {
   GitRunStackedActionResult,
   GitStackedAction,
@@ -59,14 +61,18 @@ export function resolveGitActionResultToastTiming(
   };
 }
 
-export function resolveGitActionProgressPresentation(input: {
-  readonly isRunning: boolean;
-  readonly operation: string | null;
-  readonly currentLabel: string | null;
-  readonly lastOutputLine: string | null;
-  readonly phaseStartedAtMs: number | null;
-  readonly hookStartedAtMs: number | null;
-}): GitActionProgressPresentation | null {
+export function resolveGitActionProgressPresentation(
+  input: {
+    readonly isRunning: boolean;
+    readonly operation: string | null;
+    readonly currentLabel: string | null;
+    readonly lastOutputLine: string | null;
+    readonly phaseStartedAtMs: number | null;
+    readonly hookStartedAtMs: number | null;
+    readonly hookName?: string | null;
+  },
+  locale: ResolvedAppLocale = "en",
+): GitActionProgressPresentation | null {
   if (
     !input.isRunning ||
     (input.operation !== "run_change_request" && input.operation !== "pull")
@@ -78,12 +84,13 @@ export function resolveGitActionProgressPresentation(input: {
   const output = input.lastOutputLine?.trim();
   const isPull = input.operation === "pull";
   return {
-    status:
-      currentLabel && currentLabel !== "Running source control action"
-        ? currentLabel
+    status: input.hookName
+      ? translateWebMessage(locale, "gitActions.runningHook", { hook: input.hookName })
+      : currentLabel && currentLabel !== "Running source control action"
+        ? translateWebSource(locale, currentLabel)
         : isPull
-          ? "Pulling latest changes..."
-          : "Starting source control action...",
+          ? translateWebSource(locale, "Pulling latest changes...")
+          : translateWebSource(locale, "Starting source control action..."),
     output: !isPull && output ? output : null,
     startedAtMs: isPull
       ? input.phaseStartedAtMs
@@ -91,25 +98,30 @@ export function resolveGitActionProgressPresentation(input: {
   };
 }
 
-export function formatGitActionElapsed(startedAtMs: number | null, nowMs: number): string | null {
+export function formatGitActionElapsed(
+  startedAtMs: number | null,
+  nowMs: number,
+  locale: ResolvedAppLocale = "en",
+): string | null {
   if (startedAtMs === null) {
     return null;
   }
 
   const elapsedSeconds = Math.max(0, Math.floor((nowMs - startedAtMs) / 1_000));
   if (elapsedSeconds < 60) {
-    return `${elapsedSeconds}s`;
+    return translateWebMessage(locale, "gitActions.elapsedSeconds", { seconds: elapsedSeconds });
   }
 
   const minutes = Math.floor(elapsedSeconds / 60);
   const seconds = elapsedSeconds % 60;
-  return `${minutes}m ${seconds}s`;
+  return translateWebMessage(locale, "gitActions.elapsedMinutes", { minutes, seconds });
 }
 
 export function buildMenuItems(
   gitStatus: VcsStatusResult | null,
   isBusy: boolean,
   hasPrimaryRemote = true,
+  locale: ResolvedAppLocale = "en",
 ): GitActionMenuItem[] {
   if (!gitStatus) return [];
   const terminology = changeRequestTerminologyFor(gitStatus);
@@ -137,7 +149,7 @@ export function buildMenuItems(
 
   const commitItem: GitActionMenuItem = {
     id: "commit",
-    label: "Commit",
+    label: translateWebSource(locale, "Commit"),
     disabled: !canCommit,
     icon: "commit",
     kind: "open_dialog",
@@ -150,7 +162,7 @@ export function buildMenuItems(
 
   const pushItem: GitActionMenuItem = {
     id: "push",
-    label: "Push",
+    label: translateWebSource(locale, "Push"),
     disabled: !canPush,
     icon: "push",
     kind: "open_dialog",
@@ -166,7 +178,9 @@ export function buildMenuItems(
     pushItem,
     {
       id: "pr",
-      label: `Create ${terminology.shortLabel}`,
+      label: translateWebMessage(locale, "gitActions.createRequest", {
+        request: terminology.shortLabel,
+      }),
       disabled: !canCreatePr,
       icon: "pr",
       kind: "open_dialog",
@@ -193,17 +207,23 @@ export function resolveQuickAction(
   isBusy: boolean,
   isDefaultRef = false,
   hasPrimaryRemote = true,
+  locale: ResolvedAppLocale = "en",
 ): GitQuickAction {
   if (isBusy) {
-    return { label: "Commit", disabled: true, kind: "show_hint", hint: "Git action in progress." };
+    return {
+      label: translateWebSource(locale, "Commit"),
+      disabled: true,
+      kind: "show_hint",
+      hint: translateWebSource(locale, "Git action in progress."),
+    };
   }
 
   if (!gitStatus) {
     return {
-      label: "Commit",
+      label: translateWebSource(locale, "Commit"),
       disabled: true,
       kind: "show_hint",
-      hint: "Git status is unavailable.",
+      hint: translateWebSource(locale, "Git status is unavailable."),
     };
   }
 
@@ -218,22 +238,36 @@ export function resolveQuickAction(
 
   if (!hasBranch) {
     return {
-      label: "Commit",
+      label: translateWebSource(locale, "Commit"),
       disabled: true,
       kind: "show_hint",
-      hint: `Create and checkout a ref before pushing or opening a ${terminology.singular}.`,
+      hint: translateWebMessage(locale, "gitActions.checkoutBeforeRequest", {
+        request: translateWebSource(locale, terminology.singular),
+      }),
     };
   }
 
   if (hasChanges) {
     if (isBehind || (!gitStatus.hasUpstream && !hasPrimaryRemote)) {
-      return { label: "Commit", disabled: false, kind: "run_action", action: "commit" };
+      return {
+        label: translateWebSource(locale, "Commit"),
+        disabled: false,
+        kind: "run_action",
+        action: "commit",
+      };
     }
     if (hasOpenPr || isDefaultRef) {
-      return { label: "Commit & push", disabled: false, kind: "run_action", action: "commit_push" };
+      return {
+        label: translateWebSource(locale, "Commit & push"),
+        disabled: false,
+        kind: "run_action",
+        action: "commit_push",
+      };
     }
     return {
-      label: `Commit, push & ${terminology.shortLabel}`,
+      label: translateWebMessage(locale, "gitActions.commitPushRequest", {
+        request: terminology.shortLabel,
+      }),
       disabled: false,
       kind: "run_action",
       action: "commit_push_pr",
@@ -243,7 +277,7 @@ export function resolveQuickAction(
   if (!gitStatus.hasUpstream) {
     if (!hasPrimaryRemote) {
       return {
-        label: "Publish repository",
+        label: translateWebSource(locale, "Publish repository"),
         disabled: false,
         kind: "open_publish",
       };
@@ -251,29 +285,31 @@ export function resolveQuickAction(
     if (!isAhead) {
       if (hasOpenPr) {
         return {
-          label: "Commit",
+          label: translateWebSource(locale, "Commit"),
           disabled: true,
           kind: "show_hint",
-          hint: "Branch is up to date. No action needed.",
+          hint: translateWebSource(locale, "Branch is up to date. No action needed."),
         };
       }
       return {
-        label: "Push",
+        label: translateWebSource(locale, "Push"),
         disabled: true,
         kind: "show_hint",
-        hint: "No local commits to push.",
+        hint: translateWebSource(locale, "No local commits to push."),
       };
     }
     if (hasOpenPr || isDefaultRef) {
       return {
-        label: "Push",
+        label: translateWebSource(locale, "Push"),
         disabled: false,
         kind: "run_action",
         action: isDefaultRef ? "commit_push" : "push",
       };
     }
     return {
-      label: `Push & create ${terminology.shortLabel}`,
+      label: translateWebMessage(locale, "gitActions.pushCreateRequest", {
+        request: terminology.shortLabel,
+      }),
       disabled: false,
       kind: "run_action",
       action: "create_pr",
@@ -282,16 +318,16 @@ export function resolveQuickAction(
 
   if (isDiverged) {
     return {
-      label: "Sync ref",
+      label: translateWebSource(locale, "Sync ref"),
       disabled: true,
       kind: "show_hint",
-      hint: "Branch has diverged from upstream. Rebase/merge first.",
+      hint: translateWebSource(locale, "Branch has diverged from upstream. Rebase/merge first."),
     };
   }
 
   if (isBehind) {
     return {
-      label: "Pull",
+      label: translateWebSource(locale, "Pull"),
       disabled: false,
       kind: "run_pull",
     };
@@ -300,14 +336,16 @@ export function resolveQuickAction(
   if (isAhead) {
     if (hasOpenPr || isDefaultRef) {
       return {
-        label: "Push",
+        label: translateWebSource(locale, "Push"),
         disabled: false,
         kind: "run_action",
         action: isDefaultRef ? "commit_push" : "push",
       };
     }
     return {
-      label: `Push & create ${terminology.shortLabel}`,
+      label: translateWebMessage(locale, "gitActions.pushCreateRequest", {
+        request: terminology.shortLabel,
+      }),
       disabled: false,
       kind: "run_action",
       action: "create_pr",
@@ -316,16 +354,18 @@ export function resolveQuickAction(
 
   if (hasOpenPr && gitStatus.hasUpstream) {
     return {
-      label: "Commit",
+      label: translateWebSource(locale, "Commit"),
       disabled: true,
       kind: "show_hint",
-      hint: "Branch is up to date. No action needed.",
+      hint: translateWebSource(locale, "Branch is up to date. No action needed."),
     };
   }
 
   if (hasDefaultBranchDelta && !isDefaultRef) {
     return {
-      label: `Create ${terminology.shortLabel}`,
+      label: translateWebMessage(locale, "gitActions.createRequest", {
+        request: terminology.shortLabel,
+      }),
       disabled: false,
       kind: "run_action",
       action: "create_pr",
@@ -333,10 +373,10 @@ export function resolveQuickAction(
   }
 
   return {
-    label: "Commit",
+    label: translateWebSource(locale, "Commit"),
     disabled: true,
     kind: "show_hint",
-    hint: "Branch is up to date. No action needed.",
+    hint: translateWebSource(locale, "Branch is up to date. No action needed."),
   };
 }
 
@@ -345,47 +385,51 @@ export function resolveDefaultBranchActionDialogCopy(input: {
   branchName: string;
   includesCommit: boolean;
   terminology: ChangeRequestTerminology;
+  locale?: ResolvedAppLocale;
 }): DefaultBranchActionDialogCopy {
-  const branchLabel = input.branchName;
-  const suffix = ` on "${branchLabel}". You can continue on this ref or create a feature ref and run the same action there.`;
+  const locale = input.locale ?? "en";
+  const t = translateWebMessage.bind(null, locale);
+  const branch = input.branchName;
   const { terminology } = input;
-
+  const request = translateWebSource(locale, terminology.singular);
   if (input.action === "push" || input.action === "commit_push") {
-    if (input.includesCommit) {
-      return {
-        title: "Commit & push to default ref?",
-        description: `This action will commit and push changes${suffix}`,
-        continueLabel: `Commit & push to ${branchLabel}`,
+    return input.includesCommit
+      ? {
+          title: translateWebSource(locale, "Commit & push to default ref?"),
+          description: t("gitActions.default.commitPushDescription", { branch }),
+          continueLabel: t("gitActions.default.commitPushContinue", { branch }),
+        }
+      : {
+          title: translateWebSource(locale, "Push to default ref?"),
+          description: t("gitActions.default.pushDescription", { branch }),
+          continueLabel: t("gitActions.default.pushContinue", { branch }),
+        };
+  }
+  return input.includesCommit
+    ? {
+        title: t("gitActions.default.commitRequestTitle", { request: terminology.shortLabel }),
+        description: t("gitActions.default.commitPushRequestDescription", { branch, request }),
+        continueLabel: t("gitActions.default.commitRequestContinue", {
+          request: terminology.shortLabel,
+        }),
+      }
+    : {
+        title: t("gitActions.default.pushRequestTitle", { request: terminology.shortLabel }),
+        description: t("gitActions.default.pushRequestDescription", { branch, request }),
+        continueLabel: t("gitActions.pushCreateRequest", { request: terminology.shortLabel }),
       };
-    }
-    return {
-      title: "Push to default ref?",
-      description: `This action will push local commits${suffix}`,
-      continueLabel: `Push to ${branchLabel}`,
-    };
-  }
-
-  if (input.includesCommit) {
-    return {
-      title: `Commit, push & create ${terminology.shortLabel} from default ref?`,
-      description: `This action will commit, push, and create a ${terminology.singular}${suffix}`,
-      continueLabel: `Commit, push & create ${terminology.shortLabel}`,
-    };
-  }
-  return {
-    title: `Push & create ${terminology.shortLabel} from default ref?`,
-    description: `This action will push local commits and create a ${terminology.singular}${suffix}`,
-    continueLabel: `Push & create ${terminology.shortLabel}`,
-  };
 }
 
 /** Clean trees cannot create feature branches because the server derives names from uncommitted changes. */
 export function resolveFeatureBranchUnavailableReason(input: {
   branchName: string;
   hasWorkingTreeChanges: boolean;
+  locale?: ResolvedAppLocale;
 }): string | null {
   if (input.hasWorkingTreeChanges) return null;
-  return `There are no changes to commit, so a feature branch can't be named. Create a branch yourself or continue on ${input.branchName}.`;
+  return translateWebMessage(input.locale ?? "en", "gitActions.featureBranchUnavailable", {
+    branch: input.branchName,
+  });
 }
 
 export function resolveThreadBranchUpdate(

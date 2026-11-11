@@ -65,6 +65,7 @@ vi.mock(import("../hooks/useSettings"), async (original) => ({
     return () => state.settingsListeners.delete(listener);
   }) as never,
   getClientSettings: (() => ({
+    appLocale: "en",
     notificationMode: state.mode,
     inAppNotificationsEnabled: state.inApp,
   })) as never,

@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateChatSource } from "~/i18n/chatSourceMessages";
 import type {
   EnvironmentId,
   OrchestrationV2GetNativeChildWorkResult,
@@ -31,17 +33,22 @@ export function NativeChildWorkDialog(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
 }) {
+  const { locale } = useI18n();
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>
         <ListTreeIcon />
-        <span className="@max-[420px]/composer-surface:sr-only">Subagent work</span>
+        <span className="@max-[420px]/composer-surface:sr-only">
+          {translateChatSource(locale, "Subagent work")}
+        </span>
       </Button>
       <DialogPopup className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Subagent work</DialogTitle>
-          <DialogDescription>Read only. These subagents cannot take messages.</DialogDescription>
+          <DialogTitle>{translateChatSource(locale, "Subagent work")}</DialogTitle>
+          <DialogDescription>
+            {translateChatSource(locale, "Read only. These subagents cannot take messages.")}
+          </DialogDescription>
         </DialogHeader>
         {open ? <NativeChildWorkContent {...props} /> : null}
       </DialogPopup>
@@ -53,6 +60,7 @@ function NativeChildWorkContent(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
 }) {
+  const { t, locale } = useI18n();
   const query = useEnvironmentQuery<OrchestrationV2GetNativeChildWorkResult, unknown>(
     orchestrationEnvironment.nativeChildWork({
       environmentId: props.environmentId,
@@ -66,10 +74,13 @@ function NativeChildWorkContent(props: {
         {query.error !== null ? (
           <p className="text-sm text-destructive-foreground">{query.error}</p>
         ) : children === undefined ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
         ) : children.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            The provider has no record of which subagents this call started.
+            {translateChatSource(
+              locale,
+              "The provider has no record of which subagents this call started.",
+            )}
           </p>
         ) : (
           children.map((child) => <NativeChild key={child.conversationId} child={child} />)
@@ -77,7 +88,7 @@ function NativeChildWorkContent(props: {
       </DialogPanel>
       <DialogFooter variant="bare">
         <Button size="sm" variant="outline" disabled={query.isPending} onClick={query.refresh}>
-          Refresh
+          {translateChatSource(locale, "Refresh")}
         </Button>
       </DialogFooter>
     </>
@@ -85,18 +96,28 @@ function NativeChildWorkContent(props: {
 }
 
 function NativeChild(props: { readonly child: OrchestrationV2NativeChildWork }) {
+  const { locale } = useI18n();
   const { child } = props;
   return (
-    <section aria-label={child.role || "Subagent"} className="flex min-w-0 flex-col gap-2">
-      <h3 className="text-sm font-medium text-foreground">{child.role || "Subagent"}</h3>
+    <section
+      aria-label={child.role || translateChatSource(locale, "Subagent")}
+      className="flex min-w-0 flex-col gap-2"
+    >
+      <h3 className="text-sm font-medium text-foreground">
+        {child.role || translateChatSource(locale, "Subagent")}
+      </h3>
       <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
         {child.prompt}
       </p>
       {child.truncated ? (
-        <p className="text-xs text-muted-foreground">Earlier steps are not shown.</p>
+        <p className="text-xs text-muted-foreground">
+          {translateChatSource(locale, "Earlier steps are not shown.")}
+        </p>
       ) : null}
       {child.steps === null ? (
-        <p className="text-xs text-muted-foreground">No transcript yet.</p>
+        <p className="text-xs text-muted-foreground">
+          {translateChatSource(locale, "No transcript yet.")}
+        </p>
       ) : (
         <ol className="m-0 flex list-none flex-col gap-2 border-s ps-3">
           {child.steps.map((step) => (
@@ -109,12 +130,15 @@ function NativeChild(props: { readonly child: OrchestrationV2NativeChildWork }) 
 }
 
 function NativeChildStep(props: { readonly step: OrchestrationV2NativeChildStep }) {
+  const { locale } = useI18n();
   const { step } = props;
   return (
     <li className="flex min-w-0 flex-col gap-1">
       <span className="text-xs font-medium text-muted-foreground">
-        {stepLabel(step.type)}
-        {step.status !== null && step.status !== "DONE" ? ` · ${stepLabel(step.status)}` : ""}
+        {translateChatSource(locale, stepLabel(step.type))}
+        {step.status !== null && step.status !== "DONE"
+          ? ` · ${translateChatSource(locale, stepLabel(step.status))}`
+          : ""}
       </span>
       {step.toolCalls.length === 0 ? null : (
         <code className="whitespace-pre-wrap break-all text-xs text-foreground">

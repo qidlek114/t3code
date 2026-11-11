@@ -10,6 +10,8 @@ import * as Schema from "effect/Schema";
 import * as SynchronizedRef from "effect/SynchronizedRef";
 
 import * as ElectronDialog from "../electron/ElectronDialog.ts";
+import { makePreviewPromptMessages } from "./PreviewPromptLocale.ts";
+import type { resolvePreviewPromptMessages } from "./PreviewPromptMessages.ts";
 
 const PREVIEW_PARTITION_PREFIX = "persist:t3code-preview-";
 /** Ephemeral partitions omit persist: but retain a product prefix so the webview gate recognizes them. */
@@ -191,13 +193,14 @@ const previewHostWindow = (guest: WebContents | null): BrowserWindow | undefined
 export const make = Effect.gen(function* BrowserSessionMake() {
   const crypto = yield* Digest.Digest;
   const electronDialog = yield* ElectronDialog.ElectronDialog;
+  const getPromptMessages = yield* makePreviewPromptMessages;
   const runFork = Effect.runForkWith(yield* Effect.context<never>());
   // One prompt at a time, so a page cannot stack dialogs by looping a deep link.
   let permissionPromptOpen = false;
   /** Settles with `undefined` when the user gave no answer: another prompt was open or the dialog failed. */
   const promptPermission = (
     requester: WebContents | null,
-    prompt: {
+    makePrompt: (messages: ReturnType<typeof resolvePreviewPromptMessages>) => {
       readonly buttons: readonly [allow: string, deny: string];
       readonly message: string;
       readonly detail?: string;
@@ -215,25 +218,27 @@ export const make = Effect.gen(function* BrowserSessionMake() {
         callback(answer);
       });
     runFork(
-      electronDialog
-        .showMessageBox(
-          {
-            type: "question",
-            buttons: [...prompt.buttons],
-            // Default to deny so an Enter typed into the page cannot accept a prompt it raised.
-            defaultId: 1,
-            cancelId: 1,
-            message: prompt.message,
-            ...(prompt.detail === undefined ? {} : { detail: prompt.detail }),
-          },
-          previewHostWindow(requester),
-        )
-        .pipe(
-          Effect.map(({ response }): boolean | undefined => response === 0),
-          Effect.orElseSucceed(() => undefined),
-          Effect.flatMap(settle),
-          Effect.onInterrupt(() => settle(undefined)),
-        ),
+      getPromptMessages.pipe(
+        Effect.flatMap((messages) => {
+          const prompt = makePrompt(messages);
+          return electronDialog.showMessageBox(
+            {
+              type: "question",
+              buttons: [...prompt.buttons],
+              // Default to deny so an Enter typed into the page cannot accept a prompt it raised.
+              defaultId: 1,
+              cancelId: 1,
+              message: prompt.message,
+              ...(prompt.detail === undefined ? {} : { detail: prompt.detail }),
+            },
+            previewHostWindow(requester),
+          );
+        }),
+        Effect.map(({ response }): boolean | undefined => response === 0),
+        Effect.orElseSucceed(() => undefined),
+        Effect.flatMap(settle),
+        Effect.onInterrupt(() => settle(undefined)),
+      ),
     );
   };
   /** Electron launches external protocols after granting openExternal; untrusted pages require confirmation. */
@@ -249,11 +254,11 @@ export const make = Effect.gen(function* BrowserSessionMake() {
     }
     promptPermission(
       requester,
-      {
-        buttons: ["Open", "Cancel"],
-        message: `Open this ${new URL(url).protocol.slice(0, -1)} link?`,
-        detail: `A page in the browser wants to open another application:\n\n${truncateForPrompt(url)}`,
-      },
+      (messages) => ({
+        buttons: [messages.open, messages.cancel],
+        message: messages.openLink(new URL(url).protocol.slice(0, -1)),
+        detail: messages.openLinkDetail(truncateForPrompt(url)),
+      }),
       (answer) => callback(answer === true),
     );
   };
@@ -308,10 +313,10 @@ export const make = Effect.gen(function* BrowserSessionMake() {
             }
             promptPermission(
               requester,
-              {
-                buttons: ["Allow", "Block"],
-                message: `${truncateForPrompt(origin)} wants to see text and images copied to the clipboard`,
-              },
+              (messages) => ({
+                buttons: [messages.allow, messages.block],
+                message: messages.clipboardRead(truncateForPrompt(origin)),
+              }),
               (answer) => {
                 if (answer !== undefined) clipboardReadDecisions.set(origin, answer);
                 callback(answer === true);

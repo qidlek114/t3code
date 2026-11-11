@@ -1,3 +1,4 @@
+import { chineseText } from "@t3tools/shared/chineseUi";
 import {
   parseScopedThreadKey,
   scopeProjectRef,
@@ -17,6 +18,7 @@ import {
   sessionGrantsScope,
 } from "@t3tools/contracts";
 import { resolveWorktreeCleanup } from "@t3tools/shared/projectSettings";
+import type { ResolvedAppLocale } from "@t3tools/shared/appLocale";
 import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
 import { AsyncResult } from "effect/reactivity";
@@ -57,6 +59,8 @@ import { useClientSettings } from "./useSettings";
 import * as ThreadUndo from "@t3tools/client-runtime/state/thread-undo";
 import { showThreadUndoNotice } from "./showThreadUndoNotice";
 import { useAtomCommand } from "../state/use-atom-command";
+import { useI18n } from "../i18n/WebI18nContext";
+import { readWebI18n } from "../i18n/readWebI18n";
 import { useOrchestrationCommand } from "../state/use-orchestration-command";
 import { useAtomQueryRunner } from "../state/use-atom-query-runner";
 
@@ -165,6 +169,61 @@ export class ThreadActiveReorderUnsupportedError extends Schema.TaggedError<Thre
   }
 }
 
+const isThreadArchiveBlockedError = Schema.is(ThreadArchiveBlockedError);
+const isThreadSettlementUnsupportedError = Schema.is(ThreadSettlementUnsupportedError);
+const isThreadSnoozeUnsupportedError = Schema.is(ThreadSnoozeUnsupportedError);
+const isThreadSnoozeBlockedError = Schema.is(ThreadSnoozeBlockedError);
+const isThreadAutoSettleOptOutUnsupportedError = Schema.is(ThreadAutoSettleOptOutUnsupportedError);
+const isThreadPinningUnsupportedError = Schema.is(ThreadPinningUnsupportedError);
+const isThreadPinReorderUnsupportedError = Schema.is(ThreadPinReorderUnsupportedError);
+const isThreadActiveReorderUnsupportedError = Schema.is(ThreadActiveReorderUnsupportedError);
+
+export function formatThreadActionError(
+  error: unknown,
+  locale: ResolvedAppLocale,
+  fallback: string,
+): string {
+  if (locale !== "en") {
+    if (isThreadArchiveBlockedError(error)) {
+      return chineseText(locale, "服务提供方处于活动状态时无法归档。");
+    }
+    if (isThreadSettlementUnsupportedError(error)) {
+      return chineseText(locale, "此环境的服务器尚不支持收起任务。请更新服务器以使用收起功能。");
+    }
+    if (isThreadSnoozeUnsupportedError(error)) {
+      return chineseText(
+        locale,
+        "此环境的服务器尚不支持稍后处理。请更新服务器以使用稍后处理功能。",
+      );
+    }
+    if (isThreadSnoozeBlockedError(error)) {
+      return chineseText(
+        locale,
+        "此任务正在等待你回应。请先回应待处理的请求，再将任务设为稍后处理。",
+      );
+    }
+    if (isThreadAutoSettleOptOutUnsupportedError(error)) {
+      return chineseText(
+        locale,
+        "此环境的服务器尚不支持为单个任务关闭自动收起。请更新服务器以使用此功能。",
+      );
+    }
+    if (isThreadPinningUnsupportedError(error)) {
+      return chineseText(locale, "此环境的服务器尚不支持置顶。请更新服务器以使用置顶功能。");
+    }
+    if (isThreadPinReorderUnsupportedError(error)) {
+      return chineseText(
+        locale,
+        "此环境的服务器尚不支持调整置顶任务的顺序。请更新服务器以调整置顶顺序。",
+      );
+    }
+    if (isThreadActiveReorderUnsupportedError(error)) {
+      return chineseText(locale, "请更新此环境的服务器，以调整活跃任务的顺序。");
+    }
+  }
+  return error instanceof Error ? error.message : fallback;
+}
+
 async function requestThreadUnpinConfirmation(input: {
   enabled: boolean;
   title: string;
@@ -260,13 +319,25 @@ export function canTurnThreadIntoProject(threadRef: ScopedThreadRef): boolean {
   return project !== null && isScratchProject(project, config.scratchWorkspaceRoot);
 }
 
-function threadOperationFailure(target: ScopedThreadRef) {
+const LOCAL_THREAD_PERMISSION_MESSAGES = {
+  "This connection cannot change threads.": "此连接无权修改会话。",
+  "This connection can no longer remove worktrees.": "此连接已无权移除工作树。",
+} as const;
+
+function localThreadPermissionMessage(
+  locale: ResolvedAppLocale,
+  source: keyof typeof LOCAL_THREAD_PERMISSION_MESSAGES,
+): string {
+  return locale !== "en" ? chineseText(locale, LOCAL_THREAD_PERMISSION_MESSAGES[source]) : source;
+}
+
+function threadOperationFailure(target: ScopedThreadRef, locale: ResolvedAppLocale) {
   return readEnvironmentScope(target.environmentId, AuthOrchestrationOperateScope)
     ? null
     : AsyncResult.failure(
         Cause.fail(
           new EnvironmentAuthorizationError({
-            message: "This connection cannot change threads.",
+            message: localThreadPermissionMessage(locale, "This connection cannot change threads."),
             requiredScope: AuthOrchestrationOperateScope,
           }),
         ),
@@ -274,6 +345,9 @@ function threadOperationFailure(target: ScopedThreadRef) {
 }
 
 export function useThreadActions() {
+  const { locale, t } = useI18n();
+  const formatUndoFailure = (error: unknown) =>
+    formatThreadActionError(error, readWebI18n().locale, "An error occurred.");
   const archiveThreadMutation = useOrchestrationCommand(threadEnvironment.archive, {
     reportFailure: false,
   });
@@ -421,6 +495,7 @@ export function useThreadActions() {
       claim: action,
       undo: () => unarchiveThread(threadRef, { navigate: shouldNavigateToDraft }),
       failureTitle: "Failed to undo archive",
+      formatFailure: formatUndoFailure,
     });
 
     if (shouldNavigateToDraft && router.state.location.href === requestingRouteHref) {
@@ -440,7 +515,7 @@ export function useThreadActions() {
     target: ScopedThreadRef,
     opts: { deletedThreadKeys?: ReadonlySet<string> } = {},
   ) => {
-    const permissionFailure = threadOperationFailure(target);
+    const permissionFailure = threadOperationFailure(target, locale);
     if (permissionFailure) return permissionFailure;
     const resolved = resolveThreadTarget(target);
     if (!resolved) {
@@ -539,7 +614,7 @@ export function useThreadActions() {
       localApi
     ) {
       const sessionResult = await loadSessionState(threadRef.environmentId);
-      const permissionFailure = threadOperationFailure(threadRef);
+      const permissionFailure = threadOperationFailure(threadRef, locale);
       if (permissionFailure) return permissionFailure;
       canDeleteWorktree =
         sessionResult._tag === "Success" &&
@@ -647,7 +722,10 @@ export function useThreadActions() {
       : AsyncResult.failure(
           Cause.fail(
             new EnvironmentAuthorizationError({
-              message: "This connection can no longer remove worktrees.",
+              message: localThreadPermissionMessage(
+                locale,
+                "This connection can no longer remove worktrees.",
+              ),
               requiredScope: AuthSourceControlWriteScope,
             }),
           ),
@@ -776,6 +854,7 @@ export function useThreadActions() {
         claim: action,
         undo: () => runUndoPlan(target, undoPlan),
         failureTitle: "Failed to undo unpin",
+        formatFailure: formatUndoFailure,
       });
     } else {
       action.finish();
@@ -820,18 +899,19 @@ export function useThreadActions() {
       claim: action,
       undo: () => runUndoPlan(target, undoPlan),
       failureTitle: "Failed to undo settle",
+      formatFailure: formatUndoFailure,
     });
     return result;
   };
 
   const confirmAndUnpinThread = async (target: ScopedThreadRef) => {
-    const permissionFailure = threadOperationFailure(target);
+    const permissionFailure = threadOperationFailure(target, locale);
     if (permissionFailure) return permissionFailure;
     const localApi = readLocalApi();
     const resolved = resolveThreadTarget(target);
     const confirmationResult = await requestThreadUnpinConfirmation({
       enabled: confirmThreadUnpin,
-      title: resolved?.thread.title ?? "this thread",
+      title: resolved?.thread.title ?? t("sidebar.thisThread"),
       confirm: localApi ? (message) => localApi.dialogs.confirm(message) : null,
     });
     if (confirmationResult._tag === "Failure") {
@@ -933,6 +1013,7 @@ export function useThreadActions() {
       claim: action,
       undo: () => runUndoPlan(target, ThreadUndo.planThreadUndo("snooze")),
       failureTitle: "Failed to wake thread",
+      formatFailure: formatUndoFailure,
     });
     return result;
   };
@@ -962,18 +1043,18 @@ export function useThreadActions() {
     );
 
   const confirmAndDeleteThread = async (target: ScopedThreadRef, knownTitle?: string) => {
-    const permissionFailure = threadOperationFailure(target);
+    const permissionFailure = threadOperationFailure(target, locale);
     if (permissionFailure) return permissionFailure;
     const localApi = readLocalApi();
     const resolved = resolveThreadTarget(target);
 
     if (confirmThreadDelete && localApi) {
-      const title = resolved?.thread.title ?? knownTitle ?? "this thread";
+      const title = resolved?.thread.title ?? knownTitle ?? t("sidebar.thisThread");
       const confirmationResult = await settlePromise(() =>
         localApi.dialogs.confirm(
           [
-            `Delete thread "${title}"?`,
-            "This permanently clears conversation history for this thread.",
+            t("sidebar.confirmDeleteThread", { title }),
+            t("sidebar.confirmDeleteThreadDescription"),
           ].join("\n"),
           { variant: "destructive" },
         ),

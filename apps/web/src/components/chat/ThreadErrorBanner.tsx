@@ -1,3 +1,7 @@
+import { readWebI18n } from "~/i18n/readWebI18n";
+import { useStableCallback } from "~/hooks/useStableCallback";
+import type { WebTranslate } from "~/i18n/WebI18nContext";
+import { useI18n } from "~/i18n/WebI18nContext";
 import type { OrchestrationV2ProviderFailureClass } from "@t3tools/contracts";
 import {
   CHATGPT_USAGE_LIMIT_CODE,
@@ -14,15 +18,15 @@ import { OpenAI } from "../Icons";
 import { ChatGptUsageButton } from "../settings/ChatGptUsageButton";
 import { ExpandableText } from "../settings/ExpandableText";
 
-export function copyAdminRequest() {
+export function copyAdminRequest(controlsT: WebTranslate = readWebI18n().t) {
   void writeTextToClipboard(CHATGPT_WORKSPACE_ADMIN_REQUEST, "admin request").then(
     () =>
       toastManager.add({
         type: "success",
-        title: "Request copied",
-        description: "Send it to your workspace admin.",
+        title: controlsT("chatControls.copy67"),
+        description: controlsT("chatControls.copy68"),
       }),
-    () => toastManager.add({ type: "error", title: "Could not copy the request" }),
+    () => toastManager.add({ type: "error", title: controlsT("chatControls.copy69") }),
   );
 }
 
@@ -80,6 +84,8 @@ export const ThreadErrorBanner = memo(function ThreadErrorBanner({
   errorCode?: string | null;
   onDismiss?: () => void;
 }) {
+  const { t: controlsT } = useI18n();
+  const liveT = useStableCallback(controlsT);
   if (!error) return null;
   const workspaceLimit = errorCode === CHATGPT_WORKSPACE_USAGE_LIMIT_CODE;
   const chatGptLimit = workspaceLimit || errorCode === CHATGPT_USAGE_LIMIT_CODE;
@@ -95,14 +101,8 @@ export const ThreadErrorBanner = memo(function ThreadErrorBanner({
         <AlertDescription>
           {chatGptLimit ? (
             <div className="space-y-1">
-              <p className="font-medium">ChatGPT usage limit reached</p>
-              {workspaceLimit ? (
-                <p>
-                  {
-                    "You've reached your workspace's limit for using your ChatGPT plan in other apps. Copy a request to ask your workspace admin for increased usage limits."
-                  }
-                </p>
-              ) : null}
+              <p className="font-medium">{controlsT("chatControls.copy70")}</p>
+              {workspaceLimit ? <p>{controlsT("chatControls.copy71")}</p> : null}
             </div>
           ) : (
             <ExpandableText text={error} collapsedText={getThreadErrorBannerMessage(error)} />
@@ -111,14 +111,19 @@ export const ThreadErrorBanner = memo(function ThreadErrorBanner({
         {(chatGptLimit || onDismiss) && (
           <AlertAction>
             {workspaceLimit ? (
-              <Button variant="default" size="sm" onClick={copyAdminRequest}>
-                Copy request for admin
+              <Button variant="default" size="sm" onClick={() => copyAdminRequest(liveT)}>
+                {controlsT("chatControls.copy73")}
               </Button>
             ) : chatGptLimit ? (
               <ChatGptUsageButton variant="default" size="sm" />
             ) : null}
             {onDismiss ? (
-              <Button variant="ghost" size="icon-xs" aria-label="Dismiss error" onClick={onDismiss}>
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                aria-label={controlsT("chatControls.copy74")}
+                onClick={onDismiss}
+              >
                 <XIcon />
               </Button>
             ) : null}

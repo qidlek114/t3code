@@ -1,3 +1,4 @@
+import { useI18n } from "~/i18n/WebI18nContext";
 import type { EnvironmentId, ThreadId, TurnItemId } from "@t3tools/contracts";
 import {
   makeMcpAppHost,
@@ -88,6 +89,7 @@ export function McpAppFrame(props: {
   readonly awaitingUser?: boolean;
   readonly onFullscreenChange?: (fullscreen: boolean) => void;
 }) {
+  const { t: residualT } = useI18n();
   const { app } = props;
   const theme = useHtmlRenderTheme();
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -166,6 +168,7 @@ export function McpAppFrame(props: {
 
   // Read live values without rebuilding the host and losing the app session.
   const readLive = useStableCallback(() => ({
+    t: residualT,
     theme,
     width,
     props,
@@ -283,7 +286,11 @@ export function McpAppFrame(props: {
           throw new McpAppHostRefusal({ message: "This app cannot call that tool." });
         if (!info.value.readOnly) {
           const approved = await ask(
-            `Allow ${app.server} to run ${info.value.title ?? name}?\n${JSON.stringify(args, null, 2)}`,
+            readLive().t("chatResidual.allowTool", {
+              server: app.server,
+              tool: info.value.title ?? name,
+              args: JSON.stringify(args, null, 2),
+            }),
           );
           if (approved !== true) throw new McpAppHostRefusal({ message: "Declined by the user." });
         }
@@ -313,7 +320,9 @@ export function McpAppFrame(props: {
         const send = readLive().props.onSendMessage;
         if (send === undefined)
           throw new McpAppHostRefusal({ message: "Messages are not available here." });
-        const approved = await ask(`Send this message from ${app.server}?\n${text}`);
+        const approved = await ask(
+          readLive().t("chatResidual.sendApp", { server: app.server, text }),
+        );
         if (approved !== true) throw new McpAppHostRefusal({ message: "Declined by the user." });
         await send(text);
       },
@@ -348,7 +357,9 @@ export function McpAppFrame(props: {
       },
       downloadFile: async (files) => {
         const names = files.map((file) => file.name).join(", ");
-        const approved = await ask(`Save ${names} from ${app.server}?`);
+        const approved = await ask(
+          readLive().t("chatResidual.saveApp", { names, server: app.server }),
+        );
         if (approved !== true) throw new McpAppHostRefusal({ message: "Declined by the user." });
         for (const file of files) {
           let bytes: Uint8Array | undefined;
@@ -416,7 +427,7 @@ export function McpAppFrame(props: {
   if (closed) {
     return (
       <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-muted-foreground text-xs">
-        <span>The {app.server} app was closed</span>
+        <span>{residualT("chatResidual.appClosed", { name: app.server })}</span>
         <Button
           size="xs"
           variant="ghost"
@@ -426,7 +437,7 @@ export function McpAppFrame(props: {
             setClosed(false);
           }}
         >
-          Show app
+          {residualT("chatResidual.copy17")}
         </Button>
       </div>
     );
@@ -458,7 +469,7 @@ export function McpAppFrame(props: {
           >
             <span className="truncate">{app.server}</span>
             <Button
-              aria-label="Exit full screen"
+              aria-label={residualT("chatResidual.copy18")}
               size="icon-sm"
               variant="ghost"
               onClick={() => setDisplayMode("inline")}
@@ -469,13 +480,13 @@ export function McpAppFrame(props: {
         ) : null}
         {navigatedAway ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            The {app.server} app left its page and was stopped
+            {residualT("chatResidual.appStopped", { name: app.server })}
           </p>
         ) : src !== null ? (
           <iframe
             ref={attachFrame}
             src={src}
-            title={`${app.server} app`}
+            title={residualT("chatResidual.appTitle", { name: app.server })}
             // Omitting allow-same-origin isolates the app from the session.
             sandbox="allow-scripts allow-forms"
             allow={mcpAppAllowAttribute(app.permissions)}
@@ -485,7 +496,7 @@ export function McpAppFrame(props: {
           />
         ) : asset._tag === "Failure" ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            Unable to load the {app.server} app
+            {residualT("chatResidual.appLoad", { name: app.server })}
           </p>
         ) : null}
       </div>

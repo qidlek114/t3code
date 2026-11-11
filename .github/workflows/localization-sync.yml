@@ -1,0 +1,59 @@
+name: Sync official source
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 */6 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: localization-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'qidlek114/t3code' && (github.event_name == 'workflow_dispatch' || vars.LOCALIZATION_AUTO_SYNC == 'true')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: localization
+          fetch-depth: 0
+      - name: Merge the latest official stable release into a review branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=$(gh api repos/pingdotgg/t3code/releases/latest --jq .tag_name)
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Unexpected upstream stable tag" >&2; exit 1; }
+          branch="sync/upstream-$tag"
+          git fetch --no-tags https://github.com/pingdotgg/t3code.git "refs/tags/$tag"
+          upstream=$(git rev-parse 'FETCH_HEAD^{commit}')
+          if git merge-base --is-ancestor "$upstream" HEAD; then
+            echo "Official $tag is already included."
+            exit 0
+          fi
+          if git ls-remote --exit-code --heads origin "$branch" >/dev/null; then
+            echo "A sync branch already exists; review it before another attempt."
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git switch -c "$branch"
+          if ! git merge --no-edit "$upstream"; then
+            git diff --name-only --diff-filter=U
+            git merge --abort
+            echo "Upstream conflicts require review; localization was not changed." >&2
+            exit 1
+          fi
+          git push origin "HEAD:refs/heads/$branch"
+          printf 'Merge official %s (%s) while preserving localization history.\n\nReview translations and the Localization checks run before merging. This does not publish a release.\n' "$tag" "$upstream" > "$RUNNER_TEMP/sync-body.md"
+          gh pr create --draft --base localization --head "$branch" --title "Sync official $tag" --body-file "$RUNNER_TEMP/sync-body.md"
+          # Token-created pull requests do not trigger pull_request workflows.
+          gh workflow run localization-ci.yml --ref "$branch"

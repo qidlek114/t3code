@@ -1,3 +1,5 @@
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { useAtomCommand } from "~/state/use-atom-command";
 import type { EnvironmentId, PullRequestDetailView, PullRequestRef } from "@t3tools/contracts";
@@ -42,6 +44,7 @@ export function PullRequestCommentForm({
   onCommented: () => void;
   onClose: () => void;
 }) {
+  const { locale, t } = useI18n();
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState<"comment" | "close" | "reopen" | null>(null);
   const locked = submitting !== null || actionPending;
@@ -96,7 +99,10 @@ export function PullRequestCommentForm({
     });
     if (result._tag === "Failure") {
       setSubmitting(null);
-      toastManager.add({ type: "error", title: "Could not post the comment" });
+      toastManager.add({
+        type: "error",
+        title: translateWebSource(locale, "Could not post the comment"),
+      });
       return;
     }
     setBody("");
@@ -119,8 +125,13 @@ export function PullRequestCommentForm({
         readOnly={speech.freezesEditor}
         value={body}
         rows={3}
-        placeholder="Leave a comment"
-        aria-label={`Comment on this ${sourceControlClients.get(detail.provider).changeRequest.singular}`}
+        placeholder={translateWebSource(locale, "Leave a comment")}
+        aria-label={t("pullRequests.comment.onRequest", {
+          request: translateWebSource(
+            locale,
+            sourceControlClients.get(detail.provider).changeRequest.singular,
+          ),
+        })}
         onValueChange={setBody}
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing || event.keyCode === 229) return;
@@ -158,14 +169,14 @@ export function PullRequestCommentForm({
               // The longest label holds the width, so the confirming click lands on the button.
               <span className="inline-grid">
                 <span aria-hidden className="invisible col-start-1 row-start-1">
-                  Close with comment
+                  {translateWebSource(locale, "Close with comment")}
                 </span>
                 <span className="col-start-1 row-start-1">
                   {submitting === "close"
-                    ? "Closing..."
+                    ? translateWebSource(locale, "Closing...")
                     : inlineConfirm.isArmed("close")
                       ? "Confirm close?"
-                      : "Close with comment"}
+                      : translateWebSource(locale, "Close with comment")}
                 </span>
               </span>
             ) : submitting === "reopen" ? (
@@ -182,7 +193,9 @@ export function PullRequestCommentForm({
           onClick={() => submitAfterDictation("comment")}
         >
           <SendIcon className="size-3.5" />
-          {submitting === "comment" ? "Posting..." : "Comment"}
+          {submitting === "comment"
+            ? translateWebSource(locale, "Posting...")
+            : translateWebSource(locale, "Comment")}
         </Button>
       </div>
     </div>

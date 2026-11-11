@@ -2,6 +2,7 @@ import type { EnvironmentId, SecretReference, UnifiedSettings } from "@t3tools/c
 import { useState } from "react";
 
 import { useUpdateEnvironmentSettings } from "../../hooks/useSettings";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -31,6 +32,7 @@ export function AddUsageLimitSourceDialog({
   readonly environmentLabel: string;
   readonly sources: UnifiedSettings["usageLimitSources"];
 }) {
+  const { t } = useI18n();
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
   const [label, setLabel] = useState("");
   const [url, setUrl] = useState("");
@@ -76,10 +78,9 @@ export function AddUsageLimitSourceDialog({
     >
       <DialogPopup className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add a CLIProxyAPI hub</DialogTitle>
+          <DialogTitle>{t("usageSource.add.title")}</DialogTitle>
           <DialogDescription>
-            Show the quota of every account the hub pools, next to the providers on{" "}
-            {environmentLabel}. The key stays on that server.
+            {t("usageSource.add.description", { environment: environmentLabel })}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -91,7 +92,7 @@ export function AddUsageLimitSourceDialog({
             }}
           >
             <div className="grid gap-1.5">
-              <Label htmlFor="usage-source-url">Hub URL</Label>
+              <Label htmlFor="usage-source-url">{t("usageSource.add.url")}</Label>
               <Input
                 id="usage-source-url"
                 placeholder="https://hub.example.ts.net:8318"
@@ -101,10 +102,10 @@ export function AddUsageLimitSourceDialog({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="usage-source-key">Management key</Label>
+              <Label htmlFor="usage-source-key">{t("usageSource.add.managementKey")}</Label>
               <SecretSourceInput
                 id="usage-source-key"
-                aria-label="Management key"
+                aria-label={t("usageSource.add.managementKey")}
                 value={keyDraft}
                 sources={secretSources}
                 onChange={(event) => setKeyDraft(event.target.value)}
@@ -113,10 +114,10 @@ export function AddUsageLimitSourceDialog({
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="usage-source-label">Label (optional)</Label>
+              <Label htmlFor="usage-source-label">{t("usageSource.add.label")}</Label>
               <Input
                 id="usage-source-label"
-                placeholder="Defaults to the hub's host name"
+                placeholder={t("usageSource.add.labelPlaceholder")}
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
               />
@@ -131,10 +132,10 @@ export function AddUsageLimitSourceDialog({
               onOpenChange(false);
             }}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={save} disabled={!canSave}>
-            Add hub
+            {t("usageSource.add.action")}
           </Button>
         </DialogFooter>
       </DialogPopup>

@@ -1,3 +1,6 @@
+import { useStableCallback } from "~/hooks/useStableCallback";
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { filePreviewDelimiter } from "@t3tools/shared/delimitedPreview";
 import type { AssetResource, EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
@@ -108,6 +111,8 @@ export function AttachmentFilePreview(props: {
   onRemove?: () => void;
   onClose?: () => void;
 }) {
+  const { locale, t } = useI18n();
+  const translateSource = useStableCallback((source: string) => translateWebSource(locale, source));
   const kind = filePreviewKind(props);
   const officeKind = officePreviewKind(props);
   const delimiter = filePreviewDelimiter(props);
@@ -175,19 +180,23 @@ export function AttachmentFilePreview(props: {
     void refresh()
       .then((url) => {
         if (cancelled) return;
-        if (!url) throw new Error("Reconnect to the environment and try again.");
+        if (!url) throw new Error(translateSource("Reconnect to the environment and try again."));
         authorizedAt.current = Date.now();
         setRemoteUrl(url);
       })
       .catch((cause: unknown) => {
         if (!cancelled)
-          setError(cause instanceof Error ? cause.message : "The attachment is unavailable.");
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : translateSource("The attachment is unavailable."),
+          );
       });
     return () => {
       cancelled = true;
     };
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Retry must reauthorize the remote file.
-  }, [props.file, refresh, revision]);
+  }, [props.file, refresh, revision, translateSource]);
   const url = props.file ? localUrl : remoteUrl;
   const streamsText =
     kind === "text" &&
@@ -207,7 +216,8 @@ export function AttachmentFilePreview(props: {
       if (!file && Date.now() - authorizedAt.current > STALE_URL_MS) {
         const target = await refresh();
         if (controller.signal.aborted) return;
-        if (!target) throw new Error("Reconnect to the environment and try again.");
+        if (!target)
+          throw new Error(translateSource("Reconnect to the environment and try again."));
         authorizedAt.current = Date.now();
         if (target !== url) {
           setRemoteUrl(target);
@@ -227,10 +237,21 @@ export function AttachmentFilePreview(props: {
       if (!controller.signal.aborted) setContent(result);
     })().catch((cause: unknown) => {
       if (!controller.signal.aborted)
-        setContentError(cause instanceof Error ? cause.message : "Could not load this file.");
+        setContentError(
+          cause instanceof Error ? cause.message : translateSource("Could not load this file."),
+        );
     });
     return () => controller.abort();
-  }, [url, needsText, streamsText, revision, props.sizeBytes, props.file, refresh]);
+  }, [
+    url,
+    needsText,
+    streamsText,
+    revision,
+    props.sizeBytes,
+    props.file,
+    refresh,
+    translateSource,
+  ]);
   const failure = error ?? (needsText ? contentError : null);
   const defaultWordWrap = useClientSettings((settings) => settings.wordWrap);
   const [wordWrapOverride, setWordWrapOverride] = useState<boolean | null>(null);
@@ -248,9 +269,13 @@ export function AttachmentFilePreview(props: {
       let file = props.file;
       if (!file) {
         const target = await prepareDownload();
-        if (!target) throw new Error("Reconnect to the environment and try again.");
+        if (!target)
+          throw new Error(
+            translateWebSource(locale, "Reconnect to the environment and try again."),
+          );
         const response = await fetch(target);
-        if (!response.ok) throw new Error("The file could not be loaded. Try again.");
+        if (!response.ok)
+          throw new Error(translateWebSource(locale, "The file could not be loaded. Try again."));
         file = await response.blob();
       }
       // Blob downloads keep desktop's custom app scheme from navigating to an external browser.
@@ -266,8 +291,11 @@ export function AttachmentFilePreview(props: {
         const cause = Cause.squash(result.cause);
         toastManager.add({
           type: "error",
-          title: "Could not save file",
-          description: cause instanceof Error ? cause.message : "Please try again.",
+          title: translateWebSource(locale, "Could not save file"),
+          description:
+            cause instanceof Error
+              ? cause.message
+              : translateWebSource(locale, "Please try again."),
         });
       }
       setSaving(false);
@@ -356,7 +384,11 @@ export function AttachmentFilePreview(props: {
       }
     />
   ) : kind === "audio" ? (
-    <AudioPreview src={url} name={props.name} onError={() => setError("Unable to load audio.")} />
+    <AudioPreview
+      src={url}
+      name={props.name}
+      onError={() => setError(translateWebSource(locale, "Unable to load audio."))}
+    />
   ) : kind === "video" ? (
     <div className="flex min-h-0 flex-1 items-center justify-center bg-black">
       <video
@@ -365,7 +397,7 @@ export function AttachmentFilePreview(props: {
         src={url}
         aria-label={props.name}
         className="max-h-full max-w-full"
-        onError={() => setError("Unable to load video.")}
+        onError={() => setError(translateWebSource(locale, "Unable to load video."))}
       />
     </div>
   ) : kind === "image" ? (
@@ -374,14 +406,17 @@ export function AttachmentFilePreview(props: {
       src={url}
       name={props.name}
       mimeType={props.mimeType}
-      onError={() => setError("Unable to load image.")}
+      onError={() => setError(translateWebSource(locale, "Unable to load image."))}
     />
   ) : (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-6 text-center">
-      <p className="text-sm font-medium">No preview for this file</p>
+      <p className="text-sm font-medium">
+        {translateWebSource(locale, "No preview for this file")}
+      </p>
       <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-        Save it to open in an app that supports {props.name.split(".").at(-1) || "this format"}{" "}
-        files.
+        {t("files.residual.saveFormat", {
+          format: props.name.split(".").at(-1) || translateWebSource(locale, "this format"),
+        })}
       </p>
     </div>
   );
@@ -405,7 +440,7 @@ export function AttachmentFilePreview(props: {
         </div>
         {renderedMode ? (
           <FileSurfaceAction
-            label={renderedToggleLabel(renderedMode, rendered)}
+            label={translateWebSource(locale, renderedToggleLabel(renderedMode, rendered))}
             pressed={rendered}
             onPress={() => setRendered((value) => !value)}
           >
@@ -420,7 +455,11 @@ export function AttachmentFilePreview(props: {
         ) : null}
         {showsRawText ? (
           <FileSurfaceAction
-            label={wordWrap ? "Disable word wrap" : "Enable word wrap"}
+            label={
+              wordWrap
+                ? translateWebSource(locale, "Disable word wrap")
+                : translateWebSource(locale, "Enable word wrap")
+            }
             pressed={wordWrap}
             onPress={() => setWordWrapOverride(!wordWrap)}
           >
@@ -429,7 +468,13 @@ export function AttachmentFilePreview(props: {
         ) : null}
         {content || streamsText ? (
           <FileSurfaceAction
-            label={isCopied ? "Copied" : content?.truncated ? "Copy preview" : "Copy contents"}
+            label={
+              isCopied
+                ? translateWebSource(locale, "Copied")
+                : content?.truncated
+                  ? translateWebSource(locale, "Copy preview")
+                  : translateWebSource(locale, "Copy contents")
+            }
             onPress={() => {
               if (content) {
                 void copyToClipboard(content.text, undefined);
@@ -439,8 +484,11 @@ export function AttachmentFilePreview(props: {
               if (!copy) {
                 toastManager.add({
                   type: "error",
-                  title: "Could not copy file",
-                  description: "Wait for the file to finish loading before copying.",
+                  title: translateWebSource(locale, "Could not copy file"),
+                  description: translateWebSource(
+                    locale,
+                    "Wait for the file to finish loading before copying.",
+                  ),
                 });
                 return;
               }
@@ -449,8 +497,11 @@ export function AttachmentFilePreview(props: {
                 .catch((cause: unknown) =>
                   toastManager.add({
                     type: "error",
-                    title: "Could not copy file",
-                    description: cause instanceof Error ? cause.message : "Try again.",
+                    title: translateWebSource(locale, "Could not copy file"),
+                    description:
+                      cause instanceof Error
+                        ? cause.message
+                        : translateWebSource(locale, "Try again."),
                   }),
                 );
             }}
@@ -460,7 +511,11 @@ export function AttachmentFilePreview(props: {
         ) : null}
         {url ? (
           <FileSurfaceAction
-            label={saving ? "Preparing file…" : "Save file"}
+            label={
+              saving
+                ? translateWebSource(locale, "Preparing file…")
+                : translateWebSource(locale, "Save file")
+            }
             disabled={saving}
             onPress={save}
           >
@@ -468,21 +523,27 @@ export function AttachmentFilePreview(props: {
           </FileSurfaceAction>
         ) : null}
         {props.onRemove ? (
-          <FileSurfaceAction label="Remove from draft" onPress={props.onRemove}>
+          <FileSurfaceAction
+            label={translateWebSource(locale, "Remove from draft")}
+            onPress={props.onRemove}
+          >
             <Trash2Icon className="size-3.5" />
           </FileSurfaceAction>
         ) : null}
         {props.onClose ? (
-          <FileSurfaceAction label="Close" onPress={props.onClose}>
+          <FileSurfaceAction label={translateWebSource(locale, "Close")} onPress={props.onClose}>
             <XIcon className="size-3.5" />
           </FileSurfaceAction>
         ) : null}
       </div>
       {content?.truncated ? (
         <FileSurfaceNotice>
-          Preview limited to the first 1 MB
-          {props.sizeBytes > 0 ? ` of a ${props.sizeBytes.toLocaleString()} byte file` : ""}. Save
-          the file to read it in full.
+          {props.sizeBytes > 0
+            ? t("files.residual.limitedSaveBytes", { count: props.sizeBytes.toLocaleString() })
+            : translateWebSource(
+                locale,
+                "Preview limited to the first 1 MB. Save the file to read it in full.",
+              )}
         </FileSurfaceNotice>
       ) : null}
       {body}

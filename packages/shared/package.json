@@ -535,6 +535,10 @@
       "types": "./src/PtyAdapter.ts",
       "import": "./src/PtyAdapter.ts"
     },
+    "./appLocale": {
+      "types": "./src/appLocale.ts",
+      "import": "./src/appLocale.ts"
+    },
     "./markdownMath": {
       "types": "./src/markdownMath.ts",
       "import": "./src/markdownMath.ts"
@@ -546,6 +550,10 @@
     "./speech": {
       "types": "./src/speech.ts",
       "import": "./src/speech.ts"
+    },
+    "./chineseUi": {
+      "types": "./src/chineseUi.ts",
+      "import": "./src/chineseUi.ts"
     }
   },
   "scripts": {

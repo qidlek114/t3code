@@ -1,3 +1,5 @@
+import { useSourceTranslation } from "~/i18n/useSourceTranslation";
+import { LocalizedText } from "~/i18n/LocalizedText";
 import { useAuth } from "@clerk/react";
 import { useAtomValue } from "@effect/atom-react";
 import { offersLinkedEnvironments } from "@t3tools/client-runtime/link-request";
@@ -146,7 +148,11 @@ function Wizard({
           <AppStep choice={choice} onChoose={setChoice} />
         ) : step === 1 ? (
           <section className="space-y-3">
-            <h3 className="text-sm font-medium">What can {appName} do?</h3>
+            <h3 className="text-sm font-medium">
+              <LocalizedText source={"What can "} />
+              {appName}
+              <LocalizedText source={" do?"} />
+            </h3>
             <RadioGroup
               aria-label={`What can ${appName} do?`}
               value={access}
@@ -180,14 +186,16 @@ function Wizard({
         >
           {step === 1 ? (
             <Button variant="outline" onClick={() => setStep(0)}>
-              Back
+              <LocalizedText source={"Back"} />
             </Button>
           ) : null}
           {step === 2 ? (
-            <Button onClick={close}>Done</Button>
+            <Button onClick={close}>
+              <LocalizedText source={"Done"} />
+            </Button>
           ) : (
             <Button disabled={step === 0 ? choice === null : access === null} onClick={next}>
-              Next
+              <LocalizedText source={"Next"} />
             </Button>
           )}
         </WizardFooter>
@@ -359,12 +367,14 @@ function GateScreen({
   readonly environment: EnvironmentPresentation;
   readonly gate: Gate;
 }) {
+  const localizeUi = useSourceTranslation();
+
   const name = environment.label;
   const turnOnHere = useT3ConnectTurnOn(environment.environmentId);
   const { openAuthPrompt } = useT3ConnectAuthPrompt();
   const retry = (onClick: () => void) => (
     <Button variant="outline" onClick={onClick}>
-      Check again
+      <LocalizedText source={"Check again"} />
     </Button>
   );
   const checkAgain = retry(() => void check());
@@ -373,13 +383,13 @@ function GateScreen({
       return (
         <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
           <Spinner size="sm" tone="muted" />
-          Checking T3 Connect…
+          <LocalizedText source={"Checking T3 Connect…"} />
         </p>
       );
     case "sign-in":
       return (
         <GateMessage
-          title="Sign in to T3 Connect"
+          title={localizeUi("Sign in to T3 Connect")}
           lines={[
             `Apps like Poke and Claude run in the cloud. They need a public address to reach ${name}.`,
             `T3 Connect gives ${name} that address. Each app still needs your approval.`,
@@ -392,7 +402,7 @@ function GateScreen({
               openAuthPrompt();
             }}
           >
-            Sign in to T3 Connect
+            <LocalizedText source={"Sign in to T3 Connect"} />
           </Button>
         </GateMessage>
       );
@@ -459,9 +469,12 @@ function GateScreen({
               {tunnelLimit !== null ? (
                 <>
                   <p className="text-sm text-destructive-foreground">
-                    Your T3 Connect account is out of tunnels.
+                    <LocalizedText source={"Your T3 Connect account is out of tunnels."} />
                   </p>
-                  <ManageAccessButton environment={environment} label="Manage tunnels" />
+                  <ManageAccessButton
+                    environment={environment}
+                    label={localizeUi("Manage tunnels")}
+                  />
                 </>
               ) : null}
             </div>
@@ -470,7 +483,10 @@ function GateScreen({
           ) : (
             <div className="space-y-2 text-sm">
               <CommandBlock command="t3 connect link" />
-              <p>Restart T3 Code on {name}.</p>
+              <p>
+                <LocalizedText source={"Restart T3 Code on "} />
+                {name}.
+              </p>
               {checkAgain}
             </div>
           )}
@@ -515,7 +531,9 @@ function AppStep({
 }) {
   return (
     <section className="space-y-3">
-      <h3 className="text-sm font-medium">Which app?</h3>
+      <h3 className="text-sm font-medium">
+        <LocalizedText source={"Which app?"} />
+      </h3>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {MCP_APPS.filter((app) => !app.hidden).map((app) => (
           <button
@@ -542,7 +560,7 @@ function AppStep({
         onClick={() => onChoose("other")}
         className="w-full rounded-lg border border-border px-3 py-2.5 text-sm font-medium outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring aria-pressed:border-primary aria-pressed:bg-primary/8"
       >
-        Something else…
+        <LocalizedText source={"Something else…"} />
       </button>
     </section>
   );
@@ -560,13 +578,20 @@ function ConnectStep({
   /** Null when the sign-in page asks for the level, so no code is needed. */
   readonly access: AuthMcpClientAccess | null;
 }) {
+  const localizeUi = useSourceTranslation();
+
   const [anotherWay, setAnotherWay] = useState(choice === "other");
   const app = choice === "other" ? null : choice;
   const code =
     access === null ? (
       <p className="text-sm text-muted-foreground">
-        When {app?.name ?? "the app"} opens the sign-in page, choose what it may do and approve with
-        your T3 Connect account.
+        <LocalizedText source={"When "} messageKey="localization.whenClause" />
+        {app?.name ?? "the app"}
+        <LocalizedText
+          source={
+            " opens the sign-in page, choose what it may do and approve with your T3 Connect account."
+          }
+        />
       </p>
     ) : (
       <ApprovalCode
@@ -581,7 +606,7 @@ function ConnectStep({
     return (
       <section className="space-y-4">
         <CopyRow label="URL" value={mcpUrl} />
-        {message ? <CopyRow label="Message" value={message} /> : null}
+        {message ? <CopyRow label={localizeUi("Message")} value={message} /> : null}
         <ol className="list-decimal space-y-1 ps-5 text-sm">
           {(app?.steps ?? OTHER_MCP_APP_STEPS).map((step) => (
             <li key={step}>{step}</li>
@@ -589,10 +614,13 @@ function ConnectStep({
         </ol>
         {app === null ? (
           <p className="text-xs text-muted-foreground">
-            Apps that require their own client ID cannot connect.
+            <LocalizedText source={"Apps that require their own client ID cannot connect."} />
           </p>
         ) : app.docs ? (
-          <TextButton onClick={() => openLink(app.docs ?? "")}>{app.name} help</TextButton>
+          <TextButton onClick={() => openLink(app.docs ?? "")}>
+            {app.name}
+            <LocalizedText source={" help"} />
+          </TextButton>
         ) : null}
         {code}
         {app === null ? null : (
@@ -609,7 +637,9 @@ function ConnectStep({
       <PrimaryAction app={app} mcpUrl={mcpUrl} />
       <CopyRow label="URL" value={mcpUrl} />
       {code}
-      <TextButton onClick={() => setAnotherWay(true)}>Set up another way</TextButton>
+      <TextButton onClick={() => setAnotherWay(true)}>
+        <LocalizedText source={"Set up another way"} />
+      </TextButton>
       <LinkedLine environment={environment} access={access} />
     </section>
   );
@@ -656,7 +686,11 @@ function PrimaryAction({ app, mcpUrl }: { readonly app: McpApp; readonly mcpUrl:
               .commands(mcpUrl)
               .map((command) => <CommandBlock key={command} command={command} />)
           : null}
-        <p className="text-xs text-muted-foreground">Run these where {app.name} runs.</p>
+        <p className="text-xs text-muted-foreground">
+          <LocalizedText source={"Run these where "} />
+          {app.name}
+          <LocalizedText source={" runs."} />
+        </p>
         {note}
       </div>
     );
@@ -720,6 +754,8 @@ function ApprovalCode({
   readonly name: string;
   readonly access: AuthMcpClientAccess;
 }) {
+  const localizeUi = useSourceTranslation();
+
   const [code, setCode] = useState<{
     readonly credential: string;
     readonly expiresAt: number;
@@ -747,7 +783,8 @@ function ApprovalCode({
     <div className="space-y-1.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm">
-          Code to approve <span className="font-medium">{accessConfig[access].label}</span>
+          <LocalizedText source={"Code to approve "} />
+          <span className="font-medium">{accessConfig[access].label}</span>
         </span>
         {live ? null : (
           <Button size="sm" variant="outline" disabled={pending} onClick={() => void mint()}>
@@ -758,13 +795,17 @@ function ApprovalCode({
       {code !== null ? (
         live ? (
           <>
-            <CopyRow label="Code" value={code.credential} />
+            <CopyRow label={localizeUi("Code")} value={code.credential} />
             <p className="text-xs text-muted-foreground">
-              Expires {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")} · one use
+              <LocalizedText source={"Expires "} />
+              {Math.floor(left / 60)}:{String(left % 60).padStart(2, "0")}
+              <LocalizedText source={" · one use"} />
             </p>
           </>
         ) : (
-          <p className="text-xs text-muted-foreground">The code expired.</p>
+          <p className="text-xs text-muted-foreground">
+            <LocalizedText source={"The code expired."} />
+          </p>
         )
       ) : null}
       {error ? <p className="text-xs text-destructive-foreground">{error}</p> : null}
@@ -818,7 +859,12 @@ function LinkedLine({
       access === null || levelRank(link.access) < levelRank(access) ? link.access : access;
     return `${name} · ${link.status === "expired" ? "Expired" : accessConfig[level].label}`;
   });
-  return <p className="text-xs text-muted-foreground">Linked: {named.join(", ")}</p>;
+  return (
+    <p className="text-xs text-muted-foreground">
+      <LocalizedText source={"Linked: "} />
+      {named.join(", ")}
+    </p>
+  );
 }
 
 /** Opens Sharing & access on this environment, where its clients and T3 Connect tunnels live. */

@@ -1,3 +1,4 @@
+import { chineseText } from "@t3tools/shared/chineseUi";
 import { HOSTED_APP_CHANNEL } from "~/branding";
 import { isElectron, isSecretsFeatureEnabled } from "~/env";
 import { isMacPlatform, isWindowsPlatform, normalizeSearchText } from "~/lib/utils";
@@ -9,9 +10,12 @@ import {
   type SourceControlDefinition,
 } from "@t3tools/client-runtime/source-control-clients";
 import { DEFAULT_KEYBINDINGS } from "@t3tools/shared/keybindings";
+import type { ResolvedAppLocale } from "@t3tools/shared/appLocale";
 import * as Schema from "effect/Schema";
 import { TYPOGRAPHY_ADVANCED_STORAGE_KEY } from "../../appearanceFonts";
 import { writeLocalStorageValue } from "../../hooks/useLocalStorage";
+import { translateWebSource } from "../../i18n/messages";
+import { translateWebExtraSource } from "../../i18n/webExtraMessages";
 import { commandLabel } from "./KeybindingsSettings.logic";
 import type { ResolvedSettingsScope } from "./settingsScope";
 
@@ -41,6 +45,7 @@ export type SettingsPath =
   | "/settings/archived";
 
 export type SettingsSearchScope =
+  | "client"
   | "environment"
   | "environment-defaults"
   | "project-defaults"
@@ -224,6 +229,15 @@ const SOURCE_CONTROL_HOST_TERMS = sourceControlClients.definitions
   .join(" ");
 
 export const SETTINGS_SEARCH_ITEMS = [
+  {
+    id: "app-language",
+    title: "App language",
+    to: "/settings/general",
+    scope: "client",
+    searchTerms: [
+      "language locale translation English Chinese Simplified Chinese Traditional Chinese 中文 简体中文 繁體中文 語言 语言 跟随系统",
+    ],
+  },
   {
     id: "storage-worktree-keep-when",
     targetId: "storage-worktrees",
@@ -1334,6 +1348,65 @@ export type SettingsSearchItemId = (typeof SETTINGS_SEARCH_ITEMS)[number]["id"];
 
 const SEARCH_ITEMS_BY_ID = new Map(SETTINGS_SEARCH_ITEMS.map((item) => [item.id, item] as const));
 
+const SETTINGS_SEARCH_TITLE_MESSAGES: Readonly<Record<string, string>> = {
+  "storage-worktrees": "工作树清理",
+  "project-defaults": "项目默认值与覆盖设置",
+  "project-overview": "项目概览",
+  "default-model": "默认模型",
+  "thread-details-items": "会话详情",
+  "composer-context": "输入框上下文",
+  "thread-notifications": "会话通知",
+  "worktree-submodules": "子模块",
+  "cli-command": "t3 命令",
+  "mobile-app": "移动应用",
+  "privacy-policy": "隐私政策",
+  "open-source-licenses": "开源许可证",
+  "snap-shot-accessibility": "包含应用文字",
+  "snap-shot-shortcut": "截图快捷键",
+  "snap-shot-sound": "截图音效",
+  "snap-shot-flash": "截图闪光",
+  "snap-shot-animations": "截图动画",
+  "cursor-keychain-usage": "Cursor 账户用量",
+  "pull-request-merge-method": "默认合并方式",
+  "review-guides": "审查指南（测试版）",
+  "review-guide-model": "审查指南模型",
+  "hold-webhooks-while-offline": "离线时保留 Webhook",
+  "load-balancing": "负载均衡",
+};
+
+const EXTRA_SETTINGS_SEARCH_TITLE_IDS: ReadonlySet<string> = new Set([
+  "project-order",
+  "compact-idle-threads",
+  "keep-threads-with-pull-requests",
+  "in-app-notifications",
+  "response-streaming",
+  "composer-rich-text",
+  "send-shortcut",
+  "continue-threads-after-server-update",
+]);
+
+const LOCALIZED_STATIC_SETTINGS_SEARCH_ITEMS: ReadonlySet<SettingsSearchItem> = new Set(
+  SETTINGS_SEARCH_ITEMS.filter(
+    (item) =>
+      Object.hasOwn(SETTINGS_SEARCH_TITLE_MESSAGES, item.id) ||
+      EXTRA_SETTINGS_SEARCH_TITLE_IDS.has(item.id),
+  ),
+);
+
+export function translateSettingsSearchTitle(
+  locale: ResolvedAppLocale,
+  item: SettingsSearchItem,
+): string {
+  // Only the original, explicitly listed static rows may use the wider UI dictionary.
+  if (locale === "en" || !LOCALIZED_STATIC_SETTINGS_SEARCH_ITEMS.has(item)) {
+    return translateWebSource(locale, item.title);
+  }
+  const title = SETTINGS_SEARCH_TITLE_MESSAGES[item.id];
+  return title === undefined
+    ? translateWebExtraSource(locale, item.title)
+    : chineseText(locale, title);
+}
+
 const SETTINGS_CATEGORY_SCOPES: Readonly<Record<SettingsPath, SettingsSearchScope | null>> = {
   "/settings/diagnostics": "environment",
   "/settings/projects": "project",
@@ -1391,14 +1464,14 @@ export function movedSettingsPath(pathname: string, hash: string): SettingsPath 
   return to === pathname ? null : to;
 }
 
-export function getSettingsSearchTargetScope(targetId: string) {
+export function getSettingsSearchTargetScope(targetId: string, locale?: ResolvedAppLocale) {
   const items: readonly SettingsSearchItem[] = SETTINGS_SEARCH_ITEMS;
   const item =
     items.find((candidate) => candidate.id === targetId) ??
     items.find((candidate) => candidate.targetId === targetId);
   return item
     ? {
-        title: item.title,
+        title: locale === undefined ? item.title : translateSettingsSearchTitle(locale, item),
         scope: item.scope ?? SETTINGS_CATEGORY_SCOPES[item.to],
         ...(item.requiresThreadAutoSettlement ? { requiresThreadAutoSettlement: true } : {}),
       }
@@ -1438,6 +1511,7 @@ export function isSettingsSearchScopeAvailable(
   scopeKind: ResolvedSettingsScope["kind"],
 ): boolean {
   switch (requiredScope) {
+    case "client":
     case null:
     case "connections":
       return true;
@@ -1458,12 +1532,18 @@ export function isSettingsSearchScopeAvailable(
   }
 }
 
-export function searchableSetting(id: SettingsSearchItemId): {
+export function searchableSetting(
+  id: SettingsSearchItemId,
+  locale?: ResolvedAppLocale,
+): {
   readonly id: string;
   readonly title: string;
 } {
-  const { id: anchorId, title } = SEARCH_ITEMS_BY_ID.get(id)!;
-  return { id: anchorId, title };
+  const item = SEARCH_ITEMS_BY_ID.get(id)!;
+  return {
+    id: item.id,
+    title: locale === undefined ? item.title : translateSettingsSearchTitle(locale, item),
+  };
 }
 
 export function filterAvailableSettingsSearchItems(

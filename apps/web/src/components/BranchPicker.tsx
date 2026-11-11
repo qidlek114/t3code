@@ -1,3 +1,5 @@
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { useLegendListRef } from "~/hooks/useLegendListRef";
 import type { VcsRef } from "@t3tools/contracts";
 import { LegendList, type LegendListRef } from "@legendapp/list/react";
@@ -58,6 +60,8 @@ export function BranchPicker({
   getItemType?: ((value: string) => string) | undefined;
   children: ReactNode;
 }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   const highlightedValueRef = useRef<string | null>(null);
   const startFromOriginSwitchId = useId();
   const handleOpenChange = (nextOpen: boolean) => {
@@ -105,7 +109,7 @@ export function BranchPicker({
       {children}
       <ComboboxPopup {...popupProps}>
         <ComboboxSearchInput
-          placeholder="Search refs..."
+          placeholder={tx("Search refs...")}
           value={query}
           onChange={(event) => {
             onQueryChange(event.target.value);
@@ -126,7 +130,7 @@ export function BranchPicker({
           }}
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ComboboxEmpty>No refs found.</ComboboxEmpty>
+          <ComboboxEmpty>{tx("No refs found.")}</ComboboxEmpty>
           <div className="relative flex min-h-0 w-full max-h-56 flex-1 flex-col overflow-hidden">
             <ComboboxListVirtualized className="flex size-full min-h-0 min-w-0 flex-col">
               <LegendList<string>
@@ -164,22 +168,22 @@ export function BranchPicker({
                   >
                     <span className="flex min-w-0 items-center gap-1.5 font-medium text-muted-foreground">
                       <RefreshIcon aria-hidden="true" className="size-3 shrink-0" />
-                      <span className="truncate">Start from remote</span>
+                      <span className="truncate">{tx("Start from remote")}</span>
                     </span>
                     <Switch
                       id={startFromOriginSwitchId}
                       checked={originControl.checked}
                       size="sm"
-                      aria-label="Start worktree from remote"
+                      aria-label={tx("Start worktree from remote")}
                       onCheckedChange={(checked) => originControl.onCheckedChange(Boolean(checked))}
                     />
                   </label>
                 }
               />
               <TooltipPopup side="top" className="max-w-72 whitespace-normal">
-                Uses the latest commit of the base branch’s tracked remote branch, even if its name
-                differs. Otherwise uses the same-named branch on origin. Uses your local branch if
-                that remote branch is missing.
+                {tx(
+                  "Uses the latest commit of the base branch’s tracked remote branch, even if its name differs. Otherwise uses the same-named branch on origin. Uses your local branch if that remote branch is missing.",
+                )}
               </TooltipPopup>
             </Tooltip>
           ) : null}
@@ -208,6 +212,8 @@ export function BranchPickerRefItem({
   onClick: ComponentProps<typeof ComboboxItem>["onClick"];
   onContextMenu?: ComponentProps<typeof ComboboxItem>["onContextMenu"];
 }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   const itemValue = refName.name;
   const hasSecondaryWorktree =
     refName.worktreePath && activeProjectCwd && refName.worktreePath !== activeProjectCwd;
@@ -232,7 +238,7 @@ export function BranchPickerRefItem({
     >
       <div className="flex w-full min-w-0 items-center justify-between gap-2">
         <MiddleTruncate value={itemValue} className="flex-1" />
-        {badge && <span className="shrink-0 text-3xs text-muted-foreground/45">{badge}</span>}
+        {badge && <span className="shrink-0 text-3xs text-muted-foreground/45">{tx(badge)}</span>}
       </div>
     </ComboboxItem>
   );

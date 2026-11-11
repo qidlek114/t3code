@@ -1,8 +1,8 @@
+import { managedRuntimeModeDenial } from "../../i18n/managedPolicyMessages";
 import {
   DEFAULT_SERVER_SETTINGS,
   type ModelSelection,
   type WorktreeSubmodules,
-  managedRuntimeModeDenial,
 } from "@t3tools/contracts";
 import { createModelSelection } from "@t3tools/shared/model";
 import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
@@ -26,6 +26,8 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 import { toastManager } from "../ui/toast";
 import { Switch } from "../ui/switch";
 import { resolveDefaultModelSettingsPresentation } from "./ProjectDefaultsSettings.logic";
+import { translateWebSource } from "../../i18n/messages";
+import { useI18n } from "../../i18n/WebI18nContext";
 import type { ProjectSettingsCategory } from "./ProjectSettingsPanel";
 import { searchableSetting } from "./settingsSearch";
 import { useSettingsScope } from "./SettingsScopeContext";
@@ -49,6 +51,8 @@ function isWorktreeSubmodules(value: string | null): value is WorktreeSubmodules
 }
 
 export function ProjectDefaultsSettings({ category }: { category: ProjectSettingsCategory }) {
+  const { locale, t } = useI18n();
+  const translate = (source: string) => translateWebSource(locale, source);
   const { scope, target, targets, connectedEnvironments } = useSettingsScope();
   const settings = useScopedSettings();
   const clientSettings = useClientSettings();
@@ -119,7 +123,11 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
   const setModel = (value: ModelSelection | null) => {
     const reason = value ? modelDisabledReason(value.instanceId, value.model) : null;
     if (reason) {
-      toastManager.add({ type: "error", title: "Default model not saved", description: reason });
+      toastManager.add({
+        type: "error",
+        title: translate("Default model not saved"),
+        description: reason,
+      });
       return;
     }
     updateSettings({ defaultModelSelection: value });
@@ -141,7 +149,11 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
       }
       status={
         mixedModel
-          ? `${automaticModel ? "Automatic defaults differ." : "Defaults differ."} Select one environment or choose a shared model to edit effort.`
+          ? translate(
+              automaticModel
+                ? "Automatic defaults differ. Select one environment or choose a shared model to edit effort."
+                : "Defaults differ. Select one environment or choose a shared model to edit effort.",
+            )
           : (presentation.providerNote ?? effortDisabledReason)
       }
       resetAction={
@@ -161,7 +173,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
               modelOptionsByInstance={modelOptions}
               triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
               {...(mixedModel
-                ? { triggerLabel: automaticModel ? "Automatic (mixed)" : "Mixed" }
+                ? { triggerLabel: translate(automaticModel ? "Automatic (mixed)" : "Mixed") }
                 : {})}
               getModelDisabledReason={modelDisabledReason}
               onOpenProviderSetup={(instanceId) => {
@@ -191,7 +203,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
           </div>
         ) : (
           <span className="text-sm text-muted-foreground">
-            {mixedModel ? "Mixed" : "No providers available"}
+            {translate(mixedModel ? "Mixed" : "No providers available")}
           </span>
         )
       }
@@ -225,20 +237,20 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
               updateSettings({ defaultThreadEnvMode: value });
           }}
         >
-          <SelectTrigger size="sm" aria-label="Default workspace">
+          <SelectTrigger size="sm" aria-label={translateWebSource(locale, "Default workspace")}>
             <SelectValue>
               {(value: string | null) =>
                 value === "local" || value === "worktree"
-                  ? resolveEnvModeLabel(value)
+                  ? translate(resolveEnvModeLabel(value))
                   : unavailable
-                    ? "Unavailable"
-                    : "Mixed"
+                    ? translate("Unavailable")
+                    : translate("Mixed")
               }
             </SelectValue>
           </SelectTrigger>
           <SelectPopup align="end" alignItemWithTrigger={false}>
-            <SelectItem value="local">{resolveEnvModeLabel("local")}</SelectItem>
-            <SelectItem value="worktree">{resolveEnvModeLabel("worktree")}</SelectItem>
+            <SelectItem value="local">{translate(resolveEnvModeLabel("local"))}</SelectItem>
+            <SelectItem value="worktree">{translate(resolveEnvModeLabel("worktree"))}</SelectItem>
           </SelectPopup>
         </Select>
       }
@@ -271,11 +283,11 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
               instanceEntries={entries}
               modelOptionsByInstance={fallbackModelOptions}
               triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
-              triggerAriaLabel="Fallback model"
+              triggerAriaLabel={translate("Fallback model")}
               {...(mixedFallback
-                ? { triggerLabel: "Mixed" }
+                ? { triggerLabel: translate("Mixed") }
                 : settings.fallbackModelSelection === null
-                  ? { triggerLabel: "None" }
+                  ? { triggerLabel: translate("None") }
                   : {})}
               getModelDisabledReason={modelDisabledReason}
               onInstanceModelChange={(instanceId, model) => {
@@ -283,7 +295,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                 if (reason) {
                   toastManager.add({
                     type: "error",
-                    title: "Fallback model not saved",
+                    title: translate("Fallback model not saved"),
                     description: reason,
                   });
                   return;
@@ -312,7 +324,9 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             ) : null}
           </div>
         ) : (
-          <span className="text-sm text-muted-foreground">No providers available</span>
+          <span className="text-sm text-muted-foreground">
+            {translate("No providers available")}
+          </span>
         )
       }
     />
@@ -362,14 +376,14 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                   if (value) updateSettings({ defaultRuntimeMode: value });
                 }}
               >
-                <SelectTrigger size="sm" aria-label="Default permissions">
+                <SelectTrigger size="sm" aria-label={translate("Default permissions")}>
                   {!mixedPermissions && (
                     <PermissionIcon className="size-3.5 shrink-0 text-muted-foreground" />
                   )}
                   <SelectValue>
                     {mixedPermissions
-                      ? "Mixed"
-                      : runtimeModeConfig[settings.defaultRuntimeMode].label}
+                      ? translateWebSource(locale, "Mixed")
+                      : translate(runtimeModeConfig[settings.defaultRuntimeMode].label)}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
@@ -380,7 +394,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                       connectedEnvironments.map(
                         (environment) => environment.serverConfig?.managedPolicy,
                       ),
-                      (policy) => managedRuntimeModeDenial(policy, mode),
+                      (policy) => managedRuntimeModeDenial(policy, mode, t),
                     );
                     return (
                       <SelectItem
@@ -392,10 +406,10 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                         <div className="grid gap-0.5">
                           <span className="inline-flex items-center gap-1.5 font-medium">
                             <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-                            {option.label}
+                            {translate(option.label)}
                           </span>
                           <span className="text-xs leading-4 text-muted-foreground">
-                            {managedReason ?? option.description}
+                            {managedReason ?? translate(option.description)}
                           </span>
                         </div>
                       </SelectItem>
@@ -431,7 +445,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             }
             control={
               <Switch
-                aria-label="Default automatic pull"
+                aria-label={translate(translate("Default automatic pull"))}
                 mixed={mixedAutoPull}
                 checked={mixedAutoPull ? false : settings.defaultAutoPull}
                 onCheckedChange={(enabled) => updateSettings({ defaultAutoPull: enabled })}
@@ -455,7 +469,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             }
             control={
               <Switch
-                aria-label="Remove agent credits when merging"
+                aria-label={translateWebSource(locale, "Remove agent credits when merging")}
                 mixed={mixedAgentCredits}
                 checked={mixedAgentCredits ? false : settings.removeAgentCreditsOnMerge}
                 onCheckedChange={(enabled) =>
@@ -468,7 +482,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             serverScoped
             settingKeys={["pullRequestMergeMethod"]}
             mixed={mixedMergeMethod}
-            {...searchableSetting("pull-request-merge-method")}
+            {...searchableSetting("pull-request-merge-method", locale)}
             description={
               isProjectScope
                 ? "Pull requests in this project start with this method."
@@ -492,22 +506,33 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                     updateSettings({ pullRequestMergeMethod: value });
                 }}
               >
-                <SelectTrigger size="sm" aria-label="Default pull request merge method">
+                <SelectTrigger
+                  size="sm"
+                  aria-label={translate("Default pull request merge method")}
+                >
                   <SelectValue>
                     {(value: string | null) =>
                       value === "merge" || value === "squash" || value === "rebase"
-                        ? PULL_REQUEST_MERGE_METHOD_LABELS[value]
+                        ? translate(PULL_REQUEST_MERGE_METHOD_LABELS[value])
                         : value === "last"
-                          ? "Last selected"
-                          : "Mixed"
+                          ? translate("Last selected")
+                          : translate("Mixed")
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
-                  <SelectItem value="last">Last selected</SelectItem>
-                  <SelectItem value="merge">{PULL_REQUEST_MERGE_METHOD_LABELS.merge}</SelectItem>
-                  <SelectItem value="squash">{PULL_REQUEST_MERGE_METHOD_LABELS.squash}</SelectItem>
-                  <SelectItem value="rebase">{PULL_REQUEST_MERGE_METHOD_LABELS.rebase}</SelectItem>
+                  <SelectItem value="last">
+                    {translateWebSource(locale, "Last selected")}
+                  </SelectItem>
+                  <SelectItem value="merge">
+                    {translate(PULL_REQUEST_MERGE_METHOD_LABELS.merge)}
+                  </SelectItem>
+                  <SelectItem value="squash">
+                    {translate(PULL_REQUEST_MERGE_METHOD_LABELS.squash)}
+                  </SelectItem>
+                  <SelectItem value="rebase">
+                    {translate(PULL_REQUEST_MERGE_METHOD_LABELS.rebase)}
+                  </SelectItem>
                 </SelectPopup>
               </Select>
             }
@@ -519,6 +544,8 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
 }
 
 export function WorktreeSubmodulesRow() {
+  const { locale } = useI18n();
+  const translate = (source: string) => translateWebSource(locale, source);
   const { scope, target, connectedEnvironments } = useSettingsScope();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
@@ -534,7 +561,7 @@ export function WorktreeSubmodulesRow() {
       serverScoped
       settingKeys={["worktreeSubmodules"]}
       mixed={mixedSubmodules}
-      {...searchableSetting("worktree-submodules")}
+      {...searchableSetting("worktree-submodules", locale)}
       description={
         isProjectScope
           ? "How new worktrees in this project populate git submodules."
@@ -555,21 +582,21 @@ export function WorktreeSubmodulesRow() {
             if (isWorktreeSubmodules(value)) updateSettings({ worktreeSubmodules: value });
           }}
         >
-          <SelectTrigger size="sm" aria-label="Worktree submodules">
+          <SelectTrigger size="sm" aria-label={translate("Worktree submodules")}>
             <SelectValue>
               {(value: string | null) =>
                 isWorktreeSubmodules(value)
-                  ? WORKTREE_SUBMODULES_LABELS[value]
+                  ? translate(WORKTREE_SUBMODULES_LABELS[value])
                   : unavailable
-                    ? "Unavailable"
-                    : "Mixed"
+                    ? translate("Unavailable")
+                    : translate("Mixed")
               }
             </SelectValue>
           </SelectTrigger>
           <SelectPopup align="end" alignItemWithTrigger={false}>
             {WORKTREE_SUBMODULES_OPTIONS.map((option) => (
               <SelectItem key={option} value={option}>
-                {WORKTREE_SUBMODULES_LABELS[option]}
+                {translate(WORKTREE_SUBMODULES_LABELS[option])}
               </SelectItem>
             ))}
           </SelectPopup>

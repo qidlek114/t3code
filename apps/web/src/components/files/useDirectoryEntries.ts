@@ -1,3 +1,4 @@
+import { translateWebExtraSource } from "~/i18n/webExtraMessages";
 import type { EnvironmentId, ProjectEntry } from "@t3tools/contracts";
 import { useAtomMount, useAtomSubscribe } from "@effect/atom-react";
 import { executeAtomQuery } from "@t3tools/client-runtime/state/runtime";
@@ -7,8 +8,10 @@ import { useEffect, useRef, useState } from "react";
 import { environmentCatalog } from "~/connection/catalog";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { projectEnvironment } from "~/state/projects";
+import { useI18n } from "~/i18n/WebI18nContext";
 
 export function useDirectoryEntries(environmentId: EnvironmentId, cwd: string) {
+  const { locale } = useI18n();
   const [directories, setDirectories] = useState(new Map<string, readonly ProjectEntry[]>());
   const [errors, setErrors] = useState(new Map<string, string>());
   const [pending, setPending] = useState(1);
@@ -65,7 +68,9 @@ export function useDirectoryEntries(environmentId: EnvironmentId, cwd: string) {
           setErrors((previous) =>
             new Map(previous).set(
               directoryPath,
-              cause instanceof Error ? cause.message : "Unable to load folder.",
+              cause instanceof Error
+                ? cause.message
+                : translateWebExtraSource(locale, "Unable to load folder."),
             ),
           );
         }

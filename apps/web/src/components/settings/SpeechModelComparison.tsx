@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { useSourceTranslation } from "~/i18n/useSourceTranslation";
 import type { EnvironmentSpeechModel, SpeechBenchmarkTier } from "@t3tools/contracts";
 import { CheckIcon } from "lucide-react";
 
@@ -82,6 +84,8 @@ export function ModelBenchmarks({
   /** Plain facts, such as language count and size, shown after the scores. */
   facts: readonly string[];
 }) {
+  const { locale, t } = useI18n();
+  const localizeUi = useSourceTranslation();
   const data = model.benchmark;
   const seconds = data?.secondsPer30s[tier];
   const visible = !data
@@ -97,24 +101,24 @@ export function ModelBenchmarks({
         const score = data?.accuracy[code];
         return (
           <span key={code}>
-            {languageLabel(code)}:{" "}
+            {languageLabel(code, locale)}:{" "}
             {score ? (
               <>
                 <strong className="font-medium text-foreground">{score.grade}</strong> (
-                {score.errorPercent}% error)
+                {t("localization.voice.errorPercent", { percent: score.errorPercent })})
               </>
             ) : (
-              "not benchmarked"
+              localizeUi("not benchmarked")
             )}
           </span>
         );
       })}
       <span>
-        Speed:{" "}
+        {localizeUi("Speed:")}{" "}
         {tier === "cpu" && data && data.secondsPer30s.cpu === undefined ? (
-          "update server"
+          localizeUi("update server")
         ) : seconds == null ? (
-          "not benchmarked"
+          localizeUi("not benchmarked")
         ) : (
           <>
             <strong className="font-medium text-foreground">{seconds} s</strong> / 30 s

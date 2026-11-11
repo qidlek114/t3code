@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
@@ -49,6 +51,7 @@ export function ThreadServersPanel(props: ThreadServersPanelProps) {
 }
 
 function ThreadServersList(props: ThreadServersPanelProps) {
+  const { locale: copyLocale, t } = useI18n();
   const servers = useThreadDiscoveredPorts(props);
   const canOpen = useEnvironmentScope(props.environmentId, AuthPreviewOperateScope);
   const canStop = useAtomValue(
@@ -110,7 +113,10 @@ function ThreadServersList(props: ThreadServersPanelProps) {
   };
 
   return (
-    <ThreadDetailsSection headingId="thread-details-servers-heading" title="Servers">
+    <ThreadDetailsSection
+      headingId="thread-details-servers-heading"
+      title={translateWebSource(copyLocale, "Servers")}
+    >
       <ul className="m-0 list-none p-0">
         {servers.slice(0, visibleCount).map((server, index) => {
           const key = serverKey(server);
@@ -150,7 +156,8 @@ function ThreadServersList(props: ThreadServersPanelProps) {
                   </span>
                 </TooltipTrigger>
                 <TooltipPopup side="left">
-                  Open in the browser panel. {externalClickLabel} for your browser.
+                  {translateWebSource(copyLocale, "Open in the browser panel.")}
+                  {externalClickLabel} {translateWebSource(copyLocale, "for your browser.")}
                 </TooltipPopup>
               </Tooltip>
               {stoppable ? (
@@ -175,7 +182,9 @@ function ThreadServersList(props: ThreadServersPanelProps) {
                         <SquareIcon aria-hidden className="size-3 fill-current" />
                       )}
                     </TooltipTrigger>
-                    <TooltipPopup side="left">Stop server</TooltipPopup>
+                    <TooltipPopup side="left">
+                      {translateWebSource(copyLocale, "Stop server")}
+                    </TooltipPopup>
                   </Tooltip>
                 </div>
               ) : null}
@@ -199,7 +208,9 @@ function ThreadServersList(props: ThreadServersPanelProps) {
           ) : (
             <ChevronUpIcon aria-hidden className="size-4 shrink-0" />
           )}
-          {hiddenCount > 0 ? `Show ${Math.min(hiddenCount, SERVER_PAGE_COUNT)} more` : "Show less"}
+          {hiddenCount > 0
+            ? t("chatResidual.showMore", { count: Math.min(hiddenCount, SERVER_PAGE_COUNT) })
+            : translateWebSource(copyLocale, "Show less")}
         </ThreadDetailsControl>
       ) : null}
     </ThreadDetailsSection>

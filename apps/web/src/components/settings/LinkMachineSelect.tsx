@@ -1,3 +1,6 @@
+import { LocalizedText } from "~/i18n/LocalizedText";
+import { useI18n } from "../../i18n/WebI18nContext";
+import { translateWebSource } from "../../i18n/messages";
 import {
   ANOTHER_ADDRESS,
   type LinkableMachine,
@@ -17,10 +20,15 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
 export function LinkAddressWarning({ address }: { readonly address: string }) {
   return (
     <Alert variant="warning">
-      <AlertTitle>Check this address</AlertTitle>
+      <AlertTitle>
+        <LocalizedText source={"Check this address"} />
+      </AlertTitle>
       <AlertDescription>
-        This app cannot confirm it is one of your machines. The pairing code you paste is sent
-        there.
+        <LocalizedText
+          source={
+            "This app cannot confirm it is one of your machines. The pairing code you paste is sent there."
+          }
+        />
         <span className="block break-all">{linkDestination(address)}</span>
       </AlertDescription>
     </Alert>
@@ -29,17 +37,19 @@ export function LinkAddressWarning({ address }: { readonly address: string }) {
 
 /** Whether a machine is linked already, or how this app knows it when not connected to it. */
 export function LinkMachineBadge({ machine }: { readonly machine: LinkableMachine }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   if (machine.linked) {
     return (
       <Badge variant="success" size="sm">
-        Linked
+        {tx("Linked")}
       </Badge>
     );
   }
   if (machine.connected) return null;
   return (
     <Badge variant="outline" size="sm">
-      {machine.connectOnly ? "T3 Connect" : "Not connected"}
+      {machine.connectOnly ? "T3 Connect" : tx("Not connected")}
     </Badge>
   );
 }
@@ -65,11 +75,13 @@ export function LinkMachineSelect({
   readonly onChange: (value: string) => void;
   readonly disabled: boolean;
 }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   const labelId = useId();
   return (
     <div className="space-y-1.5">
       <span id={labelId} className="block text-xs font-medium text-foreground">
-        Machine
+        {tx("Machine")}
       </span>
       <Select
         value={value}
@@ -81,9 +93,13 @@ export function LinkMachineSelect({
         <SelectTrigger aria-labelledby={labelId}>
           <SelectValue>
             {(selected: string | null) => {
-              if (selected === ANOTHER_ADDRESS) return "Another address…";
+              if (selected === ANOTHER_ADDRESS) return tx("Another address…");
               const machine = machines.find((candidate) => candidate.environmentId === selected);
-              return machine === undefined ? "Choose a machine" : <MachineName machine={machine} />;
+              return machine === undefined ? (
+                tx("Choose a machine")
+              ) : (
+                <MachineName machine={machine} />
+              );
             }}
           </SelectValue>
         </SelectTrigger>
@@ -97,7 +113,7 @@ export function LinkMachineSelect({
             </SelectItem>
           ))}
           <SelectItem value={ANOTHER_ADDRESS} hideIndicator>
-            Another address…
+            {tx("Another address…")}
           </SelectItem>
         </SelectPopup>
       </Select>

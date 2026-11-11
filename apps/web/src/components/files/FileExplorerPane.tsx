@@ -4,6 +4,8 @@ import { RightPanelResizeHandle } from "~/components/preview/RightPanelResizeHan
 import { RESIZABLE_WIDTH_PROPERTY, useResizableWidth } from "~/hooks/useResizableWidth";
 import { observeResize } from "~/lib/observeResize";
 import { cn } from "~/lib/utils";
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 
 const MIN_WIDTH = 160;
 const MAX_WIDTH = 560;
@@ -30,6 +32,7 @@ export function FileExplorerPane({
   minWidth?: number;
   resizeLabel?: string;
 }) {
+  const { locale } = useI18n();
   const [maxWidth, setMaxWidth] = useState(MAX_WIDTH);
   const [responsiveDefaultWidth, setResponsiveDefaultWidth] = useState(defaultWidth);
   const { width, setWidth, handlers } = useResizableWidth({
@@ -61,7 +64,7 @@ export function FileExplorerPane({
         measure();
         return observeResize(row, measure);
       }}
-      aria-label="File explorer"
+      aria-label={translateWebSource(locale, "File explorer")}
       className={cn(
         "relative flex min-h-0 min-w-0 shrink-0 bg-background",
         resizable ? "border-l border-border/60" : "flex-1",
@@ -78,7 +81,7 @@ export function FileExplorerPane({
       {resizable ? (
         <RightPanelResizeHandle
           handlers={handlers}
-          label={resizeLabel}
+          label={translateWebSource(locale, resizeLabel)}
           tabIndex={0}
           aria-valuenow={width}
           aria-valuemin={minWidth}

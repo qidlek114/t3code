@@ -1,3 +1,5 @@
+import { translateWebSource } from "../../i18n/messages";
+import { useI18n } from "../../i18n/WebI18nContext";
 import type { EnvironmentId, SourceControlProviderAuth } from "@t3tools/contracts";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useState } from "react";
@@ -24,6 +26,7 @@ function RedactedLogin(props: {
   readonly revealed: boolean;
   readonly label?: string;
 }) {
+  const { locale } = useI18n();
   return props.revealed ? (
     <span className="min-w-0 truncate font-mono text-2xs">{props.account}</span>
   ) : (
@@ -31,7 +34,7 @@ function RedactedLogin(props: {
       <span className="select-none blur-xs" aria-hidden>
         {redactedPlaceholder(props.account)}
       </span>
-      <span className="sr-only">{props.label ?? "Hidden account"}</span>
+      <span className="sr-only">{props.label ?? translateWebSource(locale, "Hidden account")}</span>
     </span>
   );
 }
@@ -49,6 +52,7 @@ export function SourceControlAccountSettings({
   readonly auth: SourceControlProviderAuth;
   readonly onSaved: () => void;
 }) {
+  const { locale: sourceLocale, t } = useI18n();
   const { hosts } = useEnvironmentSettings(environmentId, (settings) =>
     readHostCredentialSettings(settings, definition.kind),
   );
@@ -83,9 +87,9 @@ export function SourceControlAccountSettings({
   if (groups.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
-        Sign in with{" "}
-        <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.loginCommand}</code> on
-        the server host, then rescan to choose accounts here.
+        {t("sourceControl.accounts.signInBefore")}{" "}
+        <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.loginCommand}</code>{" "}
+        {t("sourceControl.accounts.signInAfter")}
       </p>
     );
   }
@@ -94,14 +98,16 @@ export function SourceControlAccountSettings({
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
         <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-          Choose which <code className="rounded bg-muted px-1 py-px text-2xs">{cliName}</code> login
-          each {label} host uses, or turn a host off.
+          {t("sourceControl.accounts.chooseHostLogin", { cli: cliName, provider: label })}
         </p>
         <Button
           size="icon-xs"
           variant="ghost-muted"
           onClick={() => setRevealed((current) => !current)}
-          aria-label={revealed ? `Hide ${label} accounts` : `Reveal ${label} accounts`}
+          aria-label={t(
+            revealed ? "sourceControl.accounts.hide" : "sourceControl.accounts.reveal",
+            { provider: label },
+          )}
           aria-pressed={revealed}
         >
           {revealed ? <EyeOffIcon /> : <EyeIcon />}
@@ -120,7 +126,7 @@ export function SourceControlAccountSettings({
                 <span className="text-xs font-medium text-foreground">{group.host}</span>
                 {group.selectable.length === 1 && group.selectable[0] !== undefined ? (
                   <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-                    <span>Signed in as</span>
+                    <span>{translateWebSource(sourceLocale, "Signed in as")}</span>
                     <RedactedLogin revealed={revealed} account={group.selectable[0]} />
                   </p>
                 ) : null}
@@ -128,13 +134,18 @@ export function SourceControlAccountSettings({
               <Switch
                 checked={enabled}
                 disabled={saving}
-                aria-label={`Use ${label} on ${group.host}`}
+                aria-label={t("sourceControl.accounts.useOnHost", {
+                  provider: label,
+                  host: group.host,
+                })}
                 onCheckedChange={(checked) => void save(group.host, { enabled: checked })}
               />
             </div>
             {group.selectable.length > 1 ? (
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs text-muted-foreground">Account</span>
+                <span className="text-xs text-muted-foreground">
+                  {translateWebSource(sourceLocale, "Account")}
+                </span>
                 <div className="w-64 max-w-full">
                   <Select
                     value={pinned}
@@ -146,12 +157,18 @@ export function SourceControlAccountSettings({
                       });
                     }}
                   >
-                    <SelectTrigger size="sm" aria-label={`${label} account for ${group.host}`}>
+                    <SelectTrigger
+                      size="sm"
+                      aria-label={t("sourceControl.accounts.accountForHost", {
+                        provider: label,
+                        host: group.host,
+                      })}
+                    >
                       <SelectValue>
                         {(value: string) =>
                           value === ACTIVE_ACCOUNT ? (
                             <span className="flex min-w-0 items-center gap-1">
-                              Active {cliName} account
+                              {t("sourceControl.accounts.active", { cli: cliName })}
                               {group.activeAccount ? (
                                 <>
                                   (
@@ -172,7 +189,7 @@ export function SourceControlAccountSettings({
                     <SelectPopup align="end" alignItemWithTrigger={false}>
                       <SelectItem value={ACTIVE_ACCOUNT}>
                         <span className="flex min-w-0 items-center gap-1">
-                          Active {cliName} account
+                          {t("sourceControl.accounts.active", { cli: cliName })}
                           {group.activeAccount ? (
                             <>
                               (<RedactedLogin revealed={revealed} account={group.activeAccount} />)
@@ -185,7 +202,7 @@ export function SourceControlAccountSettings({
                           <RedactedLogin
                             revealed={revealed}
                             account={account}
-                            label={`Account ${index + 1}`}
+                            label={t("sourceControl.accounts.numbered", { number: index + 1 })}
                           />
                         </SelectItem>
                       ))}
@@ -197,7 +214,7 @@ export function SourceControlAccountSettings({
             {stalePin ? (
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs text-warning">
-                  The chosen login is no longer signed in, so the active {cliName} login is used.
+                  {t("sourceControl.accounts.fallback", { cli: cliName })}
                 </p>
                 <Button
                   size="xs"
@@ -205,7 +222,7 @@ export function SourceControlAccountSettings({
                   disabled={saving}
                   onClick={() => void save(group.host, { account: null })}
                 >
-                  Use active login
+                  {translateWebSource(sourceLocale, "Use active login")}
                 </Button>
               </div>
             ) : null}
@@ -216,14 +233,18 @@ export function SourceControlAccountSettings({
               >
                 <RedactedLogin revealed={revealed} account={entry.account} />
                 <span>
-                  can't be used: {entry.error ?? `${cliName} reports this login as invalid.`}
+                  {translateWebSource(sourceLocale, "can't be used:")}{" "}
+                  {entry.error ?? t("sourceControl.accounts.invalid", { cli: cliName })}
                 </span>
               </p>
             ))}
             {group.environmentVariable ? (
               <p className="text-xs text-warning">
-                {group.environmentVariable} is set on the server, so it overrides the account chosen
-                here until it is unset.
+                {group.environmentVariable}{" "}
+                {translateWebSource(
+                  sourceLocale,
+                  "is set on the server, so it overrides the account chosen here until it is unset.",
+                )}
               </p>
             ) : null}
           </div>

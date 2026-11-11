@@ -1,3 +1,4 @@
+import { LocalizedText } from "~/i18n/LocalizedText";
 import type {
   EnvironmentId,
   OrchestrationV2PendingBackgroundTask,
@@ -29,10 +30,14 @@ export function BackgroundWorkDetails(props: {
   const streamsOutput = useCommandOutputStreaming(props.environmentId);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<InlineButton />}>Details</DialogTrigger>
+      <DialogTrigger render={<InlineButton />}>
+        <LocalizedText source={"Details"} />
+      </DialogTrigger>
       <DialogPopup>
         <DialogHeader>
-          <DialogTitle>Background work</DialogTitle>
+          <DialogTitle>
+            <LocalizedText source={"Background work"} />
+          </DialogTitle>
         </DialogHeader>
         <DialogPanel>
           <div className="space-y-5">
@@ -83,7 +88,7 @@ export function BackgroundWorkDetails(props: {
                         props.onOpenThread(childThreadId);
                       }}
                     >
-                      Open thread
+                      <LocalizedText source={"Open thread"} />
                     </InlineButton>
                   ) : null}
                 </section>

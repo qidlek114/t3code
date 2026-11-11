@@ -8,6 +8,10 @@ import {
 import { AsyncResult } from "effect/reactivity";
 import * as Cause from "effect/Cause";
 
+import { useI18n } from "../i18n/WebI18nContext";
+import { readWebI18n } from "../i18n/readWebI18n";
+import { translateWebSource } from "../i18n/messages";
+
 import { stackedThreadToast, toastManager } from "../components/ui/toast";
 import type { SidebarProjectGroupMember } from "../sidebarProjectGrouping";
 import { useProjects, useServerConfigs } from "../state/entities";
@@ -34,6 +38,7 @@ type ProjectGroupMember = Pick<
  * reports the first failure as a toast. Every machine must be connected first.
  */
 export function useProjectGroupUpdate() {
+  const { locale, t } = useI18n();
   const serverConfigs = useServerConfigs();
   const updateProject = useOrchestrationCommand(projectEnvironment.update, {
     reportFailure: false,
@@ -53,7 +58,9 @@ export function useProjectGroupUpdate() {
     if (unavailable) {
       return failWith(
         failureTitle,
-        `Connect ${unavailable.environmentLabel ?? "the selected environment"} and try again.`,
+        t("projectSettings.connectEnvironment", {
+          environment: unavailable.environmentLabel ?? t("projectSettings.selectedEnvironment"),
+        }),
       );
     }
     for (const member of members) {
@@ -73,7 +80,10 @@ export function useProjectGroupUpdate() {
       if (result._tag === "Failure") {
         reportProjectFailure(
           members.length > 1
-            ? `${failureTitle} on ${member.environmentLabel ?? "the current environment"}`
+            ? t("projectSettings.failureOnEnvironment", {
+                failure: translateWebSource(locale, failureTitle),
+                environment: member.environmentLabel ?? t("projectSettings.currentEnvironment"),
+              })
             : failureTitle,
           result,
         );
@@ -130,25 +140,29 @@ export function checkProjectAccess(
   members: ReadonlyArray<ProjectGroupMember>,
   failureTitle: string,
 ): AtomCommandResult<void, unknown> | null {
+  const { t } = readWebI18n();
   const denied = members.find(
     (member) => !readEnvironmentScope(member.environmentId, AuthOrchestrationOperateScope),
   );
   return denied
     ? failWith(
         failureTitle,
-        `This connection cannot change projects in ${denied.environmentLabel ?? "this environment"}.`,
+        t("projectSettings.accessDeniedInEnvironment", {
+          environment: denied.environmentLabel ?? t("projectSettings.thisEnvironment"),
+        }),
       )
     : null;
 }
 
 export function reportProjectFailure(title: string, result: AtomCommandResult<unknown, unknown>) {
   if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return;
+  const { locale, t } = readWebI18n();
   const error = squashAtomCommandFailure(result);
   toastManager.add(
     stackedThreadToast({
       type: "error",
-      title,
-      description: error instanceof Error ? error.message : "An error occurred.",
+      title: translateWebSource(locale, title),
+      description: error instanceof Error ? error.message : t("common.error"),
     }),
   );
 }

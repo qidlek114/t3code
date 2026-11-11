@@ -1,8 +1,6 @@
-import {
-  managedRuntimeModeDenial,
-  type ManagedPolicySummary,
-  type RuntimeMode,
-} from "@t3tools/contracts";
+import type { WebTranslate } from "../../i18n/WebI18nContext";
+import { managedRuntimeModeDenial } from "../../i18n/managedPolicyMessages";
+import { type ManagedPolicySummary, type RuntimeMode } from "@t3tools/contracts";
 import {
   type LucideIcon,
   LockIcon,
@@ -55,10 +53,11 @@ export function resolveCompatibleRuntimeMode(
 export function resolveRuntimeModeOptions(
   modes: ReadonlyArray<RuntimeMode>,
   managedPolicy: ManagedPolicySummary | undefined,
+  t?: WebTranslate,
 ) {
   return modes.map((mode) => {
     const option = { mode, ...runtimeModeConfig[mode] };
-    const disabledReason = managedRuntimeModeDenial(managedPolicy, mode);
+    const disabledReason = managedRuntimeModeDenial(managedPolicy, mode, t);
     return disabledReason === undefined ? option : { ...option, disabledReason };
   });
 }

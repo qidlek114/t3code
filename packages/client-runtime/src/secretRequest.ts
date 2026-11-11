@@ -220,7 +220,10 @@ const USER_FACING_FAILURE_TAGS = new Set(["SecretRequestError", "EnvironmentAuth
  * Only known server errors pass their message through: anything else (transport or encoding
  * failures) gets the generic copy, so the typed value can never surface in the UI.
  */
-export function secretRequestFailureMessage(failure: unknown): string {
+export function secretRequestFailureMessage(
+  failure: unknown,
+  fallback = "Could not answer the request. Try again.",
+): string {
   if (
     typeof failure === "object" &&
     failure !== null &&
@@ -233,5 +236,5 @@ export function secretRequestFailureMessage(failure: unknown): string {
   ) {
     return failure.message;
   }
-  return "Could not answer the request. Try again.";
+  return fallback;
 }

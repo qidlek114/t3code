@@ -1,3 +1,4 @@
+import { useI18n } from "~/i18n/WebI18nContext";
 import type { ToolCallDiffTarget } from "../../diffPanelStore";
 import type { EnvironmentId, OrchestrationV2ProjectedTurnItem } from "@t3tools/contracts";
 import {
@@ -143,12 +144,13 @@ interface ToolOutputState {
 }
 
 function ToolOutputImages(props: ToolOutputState) {
+  const { t: residualT } = useI18n();
   return props.images.map((resource) => (
     <ChatMarkdownAssetImage
       key={resource.index}
       environmentId={props.environmentId}
       resource={resource}
-      alt="Tool output image"
+      alt={residualT("chatResidual.toolOutputImage")}
       maxHeightRem={16}
       onImageExpand={props.onImageExpand}
     />
@@ -156,14 +158,17 @@ function ToolOutputImages(props: ToolOutputState) {
 }
 
 function ToolOutput(props: ToolOutputState) {
+  const { t: residualT } = useI18n();
   return props.output ? (
     <StructuredValue value={props.output} highlightJson />
   ) : props.pending ? (
-    <div className="text-muted-foreground italic">Loading output…</div>
+    <div className="text-muted-foreground italic">{residualT("chatResidual.copy66")}</div>
   ) : props.error ? (
-    <div className="text-destructive">Couldn&apos;t load output: {props.error}</div>
+    <div className="text-destructive">
+      {residualT("chatResidual.loadOutputError", { error: props.error })}
+    </div>
   ) : props.empty && props.images.length === 0 ? (
-    <div className="text-muted-foreground italic">No output.</div>
+    <div className="text-muted-foreground italic">{residualT("chatResidual.copy68")}</div>
   ) : null;
 }
 
@@ -194,6 +199,7 @@ function ToolCallBody(
     readonly outputSlot?: ReactNode;
   },
 ) {
+  const { t: residualT } = useI18n();
   const call = toolCallLines({ command: props.command, args: props.args });
   return (
     <div className={cn("space-y-1.5", monoClassName)}>
@@ -220,13 +226,17 @@ function ToolCallBody(
       {call.argsText ? <StructuredValue value={call.argsText} highlightJson /> : null}
       {props.outputSlot ?? <ToolOutput {...props} />}
       {props.exitCode !== undefined && props.exitCode !== 0 ? (
-        <div className="text-destructive">exit {props.exitCode}</div>
+        <div className="text-destructive">
+          {residualT("chatResidual.copy69")}
+          {props.exitCode}
+        </div>
       ) : null}
     </div>
   );
 }
 
 export const V2ItemInspector = memo(function V2ItemInspector(props: V2ItemInspectorProps) {
+  const { t: residualT } = useI18n();
   // Command rows stream their output, including the final output, from the server.
   const environmentStreamsOutput = useCommandOutputStreaming(props.environmentId);
   const streamsOutput =
@@ -301,7 +311,7 @@ export const V2ItemInspector = memo(function V2ItemInspector(props: V2ItemInspec
                   })
                 }
               >
-                Open diff
+                {residualT("chatResidual.copy70")}
               </Button>
             ) : null}
           </div>

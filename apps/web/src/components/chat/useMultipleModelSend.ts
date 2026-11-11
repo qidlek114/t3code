@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import {
   type EnvironmentId,
   type ModelSelection,
@@ -62,6 +64,8 @@ interface MultipleModelSendInput {
  * user has moved on, through a "Restore prompt" toast.
  */
 export function useMultipleModelSend(input: MultipleModelSendInput) {
+  const { locale: uiLocale } = useI18n();
+
   const {
     environmentId,
     routeThreadKey,
@@ -217,7 +221,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
         toastManager.add(
           stackedThreadToast({
             type: "success",
-            title: `Started ${startedCount} ${startedCount === 1 ? "thread" : "threads"} in background`,
+            title: `Started ${startedCount} ${startedCount === 1 ? translateWebSource(uiLocale, "thread") : translateWebSource(uiLocale, "threads")} in background`,
           }),
         );
       }
@@ -251,12 +255,14 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
         const recoveryToastId = toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "A background prompt could not be sent",
-            description:
+            title: translateWebSource(uiLocale, "A background prompt could not be sent"),
+            description: translateWebSource(
+              uiLocale,
               "Your newer draft is unchanged. Restore the failed prompt when this composer is empty.",
+            ),
             timeout: 0,
             actionProps: {
-              children: "Restore prompt",
+              children: translateWebSource(uiLocale, "Restore prompt"),
               onClick: () => {
                 if (
                   !draftId ||
@@ -267,8 +273,10 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
                   )
                 ) {
                   toastManager.update(recoveryToastId, {
-                    description:
+                    description: translateWebSource(
+                      uiLocale,
                       "Return to the original draft and send or clear its current prompt before restoring.",
+                    ),
                   });
                   return;
                 }

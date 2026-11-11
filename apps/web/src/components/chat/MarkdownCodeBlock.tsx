@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import { PlayIcon, WrapTextIcon, CheckIcon, CopyIcon } from "lucide-react";
 import { toHtml } from "hast-util-to-html";
 import React, { use, useEffect, useState, type ReactNode } from "react";
@@ -149,6 +151,7 @@ export function MarkdownCodeBlock({
   diagram?: boolean;
   children: ReactNode;
 }) {
+  const { locale: uiLocale } = useI18n();
   const { copyToClipboard, isCopied: copied } = useCopyToClipboard({
     timeout: 1200,
     onError: (cause) =>
@@ -162,8 +165,12 @@ export function MarkdownCodeBlock({
       ),
   });
   const [wrapped, setWrapped] = useState(() => getClientSettings().wordWrap);
-  const wrapLabel = wrapped ? "Disable line wrap" : "Wrap lines";
-  const copyLabel = copied ? "Copied" : "Copy code";
+  const wrapLabel = wrapped
+    ? translateWebSource(uiLocale, "Disable line wrap")
+    : translateWebSource(uiLocale, "Wrap lines");
+  const copyLabel = copied
+    ? translateWebSource(uiLocale, "Copied")
+    : translateWebSource(uiLocale, "Copy code");
   const command = code.trim();
   const canRun =
     onRunShellCommand !== undefined &&
@@ -217,7 +224,11 @@ export function MarkdownCodeBlock({
       wrapped={wrapped}
       headerProps={THREAD_FIND_IGNORE_PROPS}
       actions={
-        <span className="flex items-center gap-0.5" role="toolbar" aria-label="Code block actions">
+        <span
+          className="flex items-center gap-0.5"
+          role="toolbar"
+          aria-label={translateWebSource(uiLocale, "Code block actions")}
+        >
           {canWrap ? (
             <Tooltip>
               <TooltipTrigger
@@ -246,13 +257,15 @@ export function MarkdownCodeBlock({
                     variant="ghost-muted"
                     size="icon-xs"
                     onClick={() => onRunShellCommand(command)}
-                    aria-label="Run in terminal"
+                    aria-label={translateWebSource(uiLocale, "Run in terminal")}
                   />
                 }
               >
                 <PlayIcon className="size-3" />
               </TooltipTrigger>
-              <TooltipPopup side="top">Run in terminal</TooltipPopup>
+              <TooltipPopup side="top">
+                {translateWebSource(uiLocale, "Run in terminal")}
+              </TooltipPopup>
             </Tooltip>
           ) : null}
           {viewToggle}

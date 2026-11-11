@@ -1,4 +1,6 @@
+import { translateWebExtraSource } from "~/i18n/webExtraMessages";
 import { useState } from "react";
+import { useI18n } from "../../i18n/WebI18nContext";
 import {
   NumberField,
   NumberFieldDecrement,
@@ -21,6 +23,7 @@ export function IntervalSecondsField({
   step: number;
   onCommit: (seconds: number, options: { onFailed: () => void }) => void;
 }) {
+  const { locale, t } = useI18n();
   const [field, setField] = useState({
     saved: value,
     draft: value as number | null,
@@ -66,11 +69,24 @@ export function IntervalSecondsField({
       }}
     >
       <NumberFieldGroup>
-        <NumberFieldDecrement aria-label={`Decrease ${label}`} />
-        <NumberFieldInput
-          aria-label={`${label.charAt(0).toUpperCase()}${label.slice(1)} in seconds`}
+        <NumberFieldDecrement
+          aria-label={t("settings.general.background.interval.decrease", {
+            name: translateWebExtraSource(locale, label),
+          })}
         />
-        <NumberFieldIncrement aria-label={`Increase ${label}`} />
+        <NumberFieldInput
+          aria-label={t("settings.general.background.interval.inSeconds", {
+            name: translateWebExtraSource(
+              locale,
+              `${label.charAt(0).toUpperCase()}${label.slice(1)}`,
+            ),
+          })}
+        />
+        <NumberFieldIncrement
+          aria-label={t("settings.general.background.interval.increase", {
+            name: translateWebExtraSource(locale, label),
+          })}
+        />
       </NumberFieldGroup>
     </NumberField>
   );

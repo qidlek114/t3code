@@ -1,7 +1,12 @@
 import type { EnvironmentId, ManagedPolicySummary, ProviderDriverKind } from "@t3tools/contracts";
 
+import { translateWebMessage } from "../i18n/messages";
+import type { WebTranslate } from "../i18n/WebI18nContext";
+
 import { useServerConfigs } from "./entities";
 import { usePrimaryEnvironmentId } from "./environments";
+
+const englishTranslate: WebTranslate = (key, values) => translateWebMessage("en", key, values);
 
 /** The policy an environment's administrator applies, or undefined when it is unmanaged. */
 export function useManagedPolicy(
@@ -33,9 +38,10 @@ export function firstManagedDenial(
 /** What usage-data notices say when the policy turns product analytics off. */
 export function managedTelemetryOffMessage(
   policy: ManagedPolicySummary | undefined,
+  t: WebTranslate = englishTranslate,
 ): string | undefined {
   return policy?.limits?.telemetry === false
-    ? `${policy.organization} turned off anonymous usage data.`
+    ? t("managedPolicy.telemetryOff", { organization: policy.organization })
     : undefined;
 }
 
@@ -53,6 +59,7 @@ export interface ManagedInstanceLocks {
 export function managedInstanceLocks(
   policy: ManagedPolicySummary | undefined,
   driver: ProviderDriverKind,
+  t: WebTranslate = englishTranslate,
 ): ManagedInstanceLocks | undefined {
   const paths = policy?.limits?.providers?.lockedInstanceFields?.[driver];
   if (policy === undefined || paths === undefined || paths.length === 0) return undefined;
@@ -62,6 +69,6 @@ export function managedInstanceLocks(
     configKeys: fieldsUnder("config."),
     environmentNames: fieldsUnder("environment."),
     wholeEnvironment: paths.includes("environment"),
-    reason: `Managed by ${policy.organization}.`,
+    reason: t("device.tools.managedBy", { owner: policy.organization }),
   };
 }

@@ -1,3 +1,4 @@
+import { LocalizedText } from "~/i18n/LocalizedText";
 import type { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card";
 import { isAtomCommandInterrupted } from "@t3tools/client-runtime/state/runtime";
 import { parsePullRequestAnchor, pullRequestLinkCommit } from "@t3tools/shared/pullRequestAnchor";
@@ -25,6 +26,8 @@ import {
   PullRequestReviewOutcomeBadge,
   resolvePullRequestState,
 } from "./pullRequestPresentation";
+import { useI18n } from "../../i18n/WebI18nContext";
+import { translateWebSource } from "../../i18n/messages";
 
 interface PullRequestLinkPreviewTarget {
   readonly environmentId: EnvironmentId;
@@ -52,6 +55,7 @@ export function PullRequestLinkPreview({
   onOpenFallback?: (url: string) => Promise<void>;
   fallback?: ReactNode;
 }) {
+  const { locale: uiLocale } = useI18n();
   const [open, setOpen] = useState(false);
   const previewActionsRef = useRef<PreviewCardPrimitive.Root.Actions | null>(null);
   const [resolvingClick, setResolvingClick] = useState(false);
@@ -173,7 +177,8 @@ export function PullRequestLinkPreview({
                       <>
                         <span aria-hidden>·</span>
                         <span className="shrink-0">
-                          opened <RelativeTime timestamp={preview.createdAt} />
+                          {translateWebSource(uiLocale, "opened")}{" "}
+                          <RelativeTime timestamp={preview.createdAt} />
                         </span>
                       </>
                     )}
@@ -206,7 +211,9 @@ function LinkedComment({
           {actorLabel(subject.author)}
         </span>
         {outcome === null ? (
-          <span className="shrink-0">commented</span>
+          <span className="shrink-0">
+            <LocalizedText source={"commented"} />
+          </span>
         ) : (
           <PullRequestReviewOutcomeBadge outcome={outcome} className="shrink-0" />
         )}

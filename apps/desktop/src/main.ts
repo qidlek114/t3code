@@ -76,6 +76,7 @@ import * as DesktopBrowserHost from "./preview/DesktopBrowserHost.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as PreviewPasskeys from "./preview/Passkeys.ts";
 import * as DesktopWindow from "./window/DesktopWindow.ts";
+import * as DesktopTray from "./window/DesktopTray.ts";
 import * as DesktopWslBackend from "./wsl/DesktopWslBackend.ts";
 import * as DesktopWslEnvironment from "./wsl/DesktopWslEnvironment.ts";
 import * as DesktopWslServerTree from "./wsl/DesktopWslServerTree.ts";
@@ -175,6 +176,7 @@ const layerDesktopPreview = PreviewManager.layer.pipe(
 );
 
 const layerDesktopWindow = DesktopWindow.layer.pipe(
+  Layer.provideMerge(DesktopTray.layer),
   Layer.provideMerge(layerDesktopServerExposure),
   Layer.provideMerge(layerDesktopPreview),
 );

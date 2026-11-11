@@ -1,3 +1,4 @@
+import { LocalizedText } from "~/i18n/LocalizedText";
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
@@ -130,7 +131,9 @@ export function DevReplayHost() {
         <DialogPanel>
           {scenarios.length === 0 || project === undefined ? (
             <p className="text-sm text-muted-foreground">
-              Needs a project and the Replay (dev) provider, which dev servers start.
+              <LocalizedText
+                source={"Needs a project and the Replay (dev) provider, which dev servers start."}
+              />
             </p>
           ) : (
             <div className="flex flex-col items-start gap-1">

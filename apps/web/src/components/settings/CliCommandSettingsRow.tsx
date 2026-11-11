@@ -1,4 +1,8 @@
+import { chineseText } from "@t3tools/shared/chineseUi";
+import { translateWebExtraSource } from "~/i18n/webExtraMessages";
 import { useState } from "react";
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 
 import {
   desktopCliCommandStateAtom,
@@ -19,6 +23,7 @@ const FAILURE_TITLES = {
 
 /** The desktop `t3` command's state, and its actions with a toast on failure. */
 export function useDesktopCliCommand() {
+  const { locale } = useI18n();
   const bridge = getDesktopCliCommandBridge();
   const query = useEnvironmentQuery(bridge ? desktopCliCommandStateAtom : null);
   const [pending, setPending] = useState(false);
@@ -32,8 +37,11 @@ export function useDesktopCliCommand() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: FAILURE_TITLES[action],
-            description: error instanceof Error ? error.message : "Something went wrong.",
+            title: translateWebExtraSource(locale, FAILURE_TITLES[action]),
+            description:
+              error instanceof Error
+                ? error.message
+                : translateWebSource(locale, "Something went wrong."),
           }),
         );
       })
@@ -48,14 +56,15 @@ export function useDesktopCliCommand() {
 }
 
 export function CliCommandSettingsRow() {
+  const { locale, t } = useI18n();
   const { state, busy, run } = useDesktopCliCommand();
 
   if (!state?.supported) return null;
   const installed = state.installedPath !== null;
   const description = state.shadowedBy
-    ? `Another t3 at ${state.shadowedBy} runs first in a new terminal. Remove it to use T3 Code's.`
+    ? t("webExtra.cli.shadowed", { path: state.shadowedBy })
     : !installed
-      ? "Run T3 Code's CLI as `t3` from any terminal."
+      ? translateWebExtraSource(locale, "Run T3 Code's CLI as `t3` from any terminal.")
       : state.onPath
         ? `Installed at ${state.installedPath}. Open a new terminal to use it.`
         : state.pathSetup?.added
@@ -64,13 +73,13 @@ export function CliCommandSettingsRow() {
 
   return (
     <SettingsRow
-      {...searchableSetting("cli-command")}
+      {...searchableSetting("cli-command", locale)}
       description={description}
       control={
         <div className="flex gap-2">
           {state.pathSetup && !state.pathSetup.added ? (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => run("addToPath")}>
-              Add to PATH
+              {locale !== "en" ? chineseText(locale, "添加到 PATH") : "Add to PATH"}
             </Button>
           ) : null}
           <Button
@@ -79,7 +88,7 @@ export function CliCommandSettingsRow() {
             disabled={busy || (!installed && Boolean(state.shadowedBy))}
             onClick={() => run(installed ? "uninstall" : "install")}
           >
-            {installed ? "Remove" : "Install"}
+            {translateWebSource(locale, installed ? "Remove" : "Install")}
           </Button>
         </div>
       }

@@ -1,3 +1,4 @@
+import { chineseText } from "@t3tools/shared/chineseUi";
 import { useAtomValue } from "@effect/atom-react";
 import {
   scopeProjectRef,
@@ -5,10 +6,12 @@ import {
   scopeThreadRef,
 } from "@t3tools/client-runtime/environment";
 import type { ScopedThreadRef } from "@t3tools/contracts";
+import type { ResolvedAppLocale } from "@t3tools/shared/appLocale";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useEffect, useEffectEvent, useRef } from "react";
 
 import { isCommandPaletteOpen } from "../commandPaletteBus";
+import { useI18n } from "../i18n/WebI18nContext";
 import { useClosedViewStore } from "../closedViewStore";
 import { useComposerDraftStore } from "../composerDraftStore";
 import { environmentCatalog } from "../connection/catalog";
@@ -56,7 +59,12 @@ const PREVIEW_FORWARDED_COMMANDS = [
 const isGlobalPullRequests = (ref: ScopedThreadRef) =>
   scopedThreadKey(ref) === scopedThreadKey(PULL_REQUESTS_PANEL_REF);
 
+function reopenClosedViewFailureTitle(locale: ResolvedAppLocale): string {
+  return locale !== "en" ? chineseText(locale, "无法重新打开视图") : "Could not reopen view";
+}
+
 export function ReopenClosedViewShortcut() {
+  const { locale } = useI18n();
   const navigate = useNavigate();
   const params = useParams({ strict: false });
   const target = resolveThreadRouteTarget(params);
@@ -147,7 +155,7 @@ export function ReopenClosedViewShortcut() {
       .catch((error: unknown) => {
         toastManager.add({
           type: "error",
-          title: "Could not reopen view",
+          title: reopenClosedViewFailureTitle(locale),
           description: error instanceof Error ? error.message : String(error),
         });
       });

@@ -1,3 +1,6 @@
+import { chineseText } from "@t3tools/shared/chineseUi";
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import {
   canEditPullRequestMaintainerEdits,
@@ -155,6 +158,9 @@ export function PullRequestActionsMenu({
   openOnHostText: string;
   copyReference: (value: string, label: string) => void;
 }) {
+  const { locale: uiLocale, t, locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
+
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const inlineConfirm = useInlineActionConfirm(pullRequestKey);
   const actionPending = pendingAction !== null;
@@ -192,8 +198,8 @@ export function PullRequestActionsMenu({
       setMaintainerEditsChoice(previousChoice);
       toastManager.add({
         type: "error",
-        title: "Could not save maintainer access",
-        description: readableFailure(squashAtomCommandFailure(result), "Try again."),
+        title: tx("Could not save maintainer access"),
+        description: readableFailure(squashAtomCommandFailure(result), tx("Try again.")),
       });
       return;
     }
@@ -209,8 +215,12 @@ export function PullRequestActionsMenu({
                 <Button
                   aria-label={
                     refreshing
-                      ? `Refreshing ${terminology.singular}`
-                      : `More ${terminology.singular} actions`
+                      ? uiLocale !== "en"
+                        ? chineseText(locale, "正在刷新变更请求")
+                        : `Refreshing ${terminology.singular}`
+                      : uiLocale !== "en"
+                        ? chineseText(locale, "更多变更请求操作")
+                        : `More ${terminology.singular} actions`
                   }
                   size="icon-xs"
                   variant="ghost-muted"
@@ -227,8 +237,12 @@ export function PullRequestActionsMenu({
         />
         <TooltipPopup>
           {refreshing
-            ? `Refreshing ${terminology.singular}`
-            : `More ${terminology.singular} actions`}
+            ? uiLocale !== "en"
+              ? chineseText(locale, "正在刷新变更请求")
+              : `Refreshing ${terminology.singular}`
+            : uiLocale !== "en"
+              ? chineseText(locale, "更多变更请求操作")
+              : `More ${terminology.singular} actions`}
         </TooltipPopup>
       </Tooltip>
       <MenuPopup align="end" side="bottom">
@@ -242,16 +256,24 @@ export function PullRequestActionsMenu({
         />
         <MenuItem disabled={refreshing} onClick={() => void refreshFromHost()}>
           <RefreshIcon size="sm" refreshing={refreshing} />
-          Refresh
+          {translateWebSource(uiLocale, "Refresh")}
         </MenuItem>
         <MenuItem disabled={handoff !== null} onClick={askAboutPullRequest}>
           <MessageCircleQuestionIcon className="mt-1 size-3.5 shrink-0 self-start" />
           <span className="flex min-w-0 flex-col">
-            <span>{handoff === "ask" ? "Opening..." : "Ask a question"}</span>
+            <span>
+              {handoff === "ask"
+                ? t("pullRequests.actions.opening")
+                : t("pullRequests.actions.askQuestion")}
+            </span>
             <span className="text-xs text-muted-foreground">
               {attachesToComposer
-                ? `Adds the ${terminology.singular} to this thread's composer.`
-                : `Opens a thread that knows which ${terminology.singular} you mean.`}
+                ? uiLocale !== "en"
+                  ? chineseText(locale, "将变更请求添加到此会话的输入框。")
+                  : `Adds the ${terminology.singular} to this thread's composer.`
+                : uiLocale !== "en"
+                  ? chineseText(locale, "打开已关联此变更请求的会话。")
+                  : `Opens a thread that knows which ${terminology.singular} you mean.`}
             </span>
           </span>
         </MenuItem>
@@ -259,21 +281,29 @@ export function PullRequestActionsMenu({
           <BookOpenIcon className="mt-1 size-3.5 shrink-0 self-start" />
           <span className="flex min-w-0 flex-col">
             <span>
-              {handoff === "explain" ? "Opening..." : `Explain this ${terminology.shortLabel}`}
+              {handoff === "explain"
+                ? translateWebSource(locale, "Opening...")
+                : `Explain this ${terminology.shortLabel}`}
             </span>
             <span className="text-xs text-muted-foreground">
-              A walk through the diff and what to read closely.
+              {t("pullRequests.actions.explainDescription")}
             </span>
           </span>
         </MenuItem>
         <MenuItem disabled={handoff !== null || !canFixFindings} onClick={startFixFindings}>
           <HammerIcon className="size-3.5" />
-          {handoff === "findings" ? "Preparing..." : handoffLabels.fixFindings}
+          {handoff === "findings"
+            ? t("pullRequests.actions.preparing")
+            : tx(handoffLabels.fixFindings)}
         </MenuItem>
         {canWriteGuide ? (
           <MenuItem disabled={guideRunning} onClick={writeGuide}>
             <ScrollTextIcon className="size-3.5" />
-            {guideRunning ? "Writing guide..." : !guideWritten ? "Write guide" : "Rewrite guide"}
+            {guideRunning
+              ? translateWebSource(uiLocale, "Writing guide...")
+              : !guideWritten
+                ? translateWebSource(uiLocale, "Write guide")
+                : translateWebSource(uiLocale, "Rewrite guide")}
           </MenuItem>
         ) : null}
         {pickableEnvironments.length > 0 ? (
@@ -292,19 +322,20 @@ export function PullRequestActionsMenu({
               checked={maintainerCanModify === true}
               disabled={!canSaveMaintainerEdits}
               closeOnClick={false}
-              aria-label="Allow edits from maintainers"
+              aria-label={tx("Allow edits from maintainers")}
               aria-describedby={maintainerEditsHintId}
               onCheckedChange={(value) => void saveMaintainerEdits(value)}
             >
               <span className="flex max-w-xs flex-col gap-0.5">
-                <span>Allow edits from maintainers</span>
+                <span>{tx("Allow edits from maintainers")}</span>
                 <span id={maintainerEditsHintId} className="text-xs text-muted-foreground">
-                  Maintainers can push to this branch. If your fork has workflows, this can also
-                  give access to its secrets.
+                  {tx(
+                    "Maintainers can push to this branch. If your fork has workflows, this can also give access to its secrets.",
+                  )}
                 </span>
                 {maintainerEditsSaving ? (
                   <span role="status" className="text-xs text-muted-foreground">
-                    Saving…
+                    {tx("Saving…")}
                   </span>
                 ) : null}
               </span>
@@ -324,32 +355,40 @@ export function PullRequestActionsMenu({
                 ) : (
                   <PullRequestGlyph.draft className="size-3.5" />
                 )}
-                {detail.isDraft ? "Ready for review" : "Convert to draft"}
+                {detail.isDraft
+                  ? t("pullRequests.actions.readyForReview")
+                  : t("pullRequests.actions.convertToDraft")}
               </MenuItem>
             ) : null}
             {showsMergeNow ? (
               <MenuItem
                 closeOnClick={inlineConfirm.isArmed("merge")}
-                aria-label={inlineConfirm.isArmed("merge") ? "Confirm merge?" : "Merge now"}
+                aria-label={
+                  inlineConfirm.isArmed("merge")
+                    ? translateWebSource(uiLocale, "Confirm merge?")
+                    : t("pullRequests.actions.mergeNow")
+                }
                 disabled={actionPending}
                 {...inlineConfirm.props("merge", () => void perform("merge", selectedMergeMethod))}
               >
                 <PullRequestGlyph.merged className="size-3.5" />
-                {inlineConfirm.isArmed("merge") ? "Confirm merge?" : "Merge now"}
+                {inlineConfirm.isArmed("merge")
+                  ? translateWebSource(uiLocale, "Confirm merge?")
+                  : t("pullRequests.actions.mergeNow")}
               </MenuItem>
             ) : null}
             {autoMergeArmed && can("disable-auto-merge") ? (
               <MenuItem disabled={actionPending} onClick={() => void perform("disable-auto-merge")}>
                 <PullRequestGlyph.merged className="size-3.5" />
-                Disable auto-merge
+                {t("pullRequests.autoMerge.disable")}{" "}
               </MenuItem>
             ) : showsAutoMerge ? (
               <MenuItem
                 closeOnClick={inlineConfirm.isArmed("enable-auto-merge")}
                 aria-label={
                   inlineConfirm.isArmed("enable-auto-merge")
-                    ? "Confirm auto-merge?"
-                    : "Enable auto-merge"
+                    ? translateWebSource(uiLocale, "Confirm auto-merge?")
+                    : t("pullRequests.autoMerge.enable")
                 }
                 disabled={actionPending}
                 {...inlineConfirm.props(
@@ -359,8 +398,8 @@ export function PullRequestActionsMenu({
               >
                 <PullRequestGlyph.merged className="size-3.5" />
                 {inlineConfirm.isArmed("enable-auto-merge")
-                  ? "Confirm auto-merge?"
-                  : "Enable auto-merge"}
+                  ? translateWebSource(uiLocale, "Confirm auto-merge?")
+                  : t("pullRequests.autoMerge.enable")}
               </MenuItem>
             ) : null}
             {showsMergeMethods ? (
@@ -379,7 +418,7 @@ export function PullRequestActionsMenu({
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <PullRequestGlyph.merged className="size-3.5" />
-                        <span>{PULL_REQUEST_MERGE_METHOD_LABELS[method]}</span>
+                        <span>{tx(PULL_REQUEST_MERGE_METHOD_LABELS[method])}</span>
                       </span>
                     </MenuRadioItem>
                   ))}
@@ -401,7 +440,7 @@ export function PullRequestActionsMenu({
         </MenuItem>
         <MenuItem onClick={() => copyReference(detail.url, `${terminology.shortLabel} link`)}>
           <LinkIcon className="size-3.5" />
-          Copy link
+          {t("common.copyLink")}
           <MenuShortcut>
             {shortcutLabelForCommand(keybindings, "thread.copyReference")}
           </MenuShortcut>
@@ -410,7 +449,7 @@ export function PullRequestActionsMenu({
           onClick={() => copyReference(`#${reference.number}`, `${terminology.shortLabel} number`)}
         >
           <CopyIcon className="size-3.5" />
-          Copy {terminology.shortLabel} number
+          {t("pullRequests.actions.copyNumber", { request: terminology.shortLabel })}
           <MenuShortcut>
             {shortcutLabelForCommand(keybindings, "pullRequest.copyNumber")}
           </MenuShortcut>
@@ -421,14 +460,22 @@ export function PullRequestActionsMenu({
             <MenuItem
               closeOnClick={inlineConfirm.isArmed("close")}
               aria-label={
-                inlineConfirm.isArmed("close") ? "Confirm close?" : `Close ${terminology.singular}`
+                inlineConfirm.isArmed("close")
+                  ? translateWebSource(uiLocale, "Confirm close?")
+                  : uiLocale !== "en"
+                    ? chineseText(locale, "关闭变更请求")
+                    : `Close ${terminology.singular}`
               }
               variant="destructive"
               disabled={actionPending}
               {...inlineConfirm.props("close", () => void perform("close"))}
             >
               <PullRequestGlyph.closed className="size-3.5" />
-              {inlineConfirm.isArmed("close") ? "Confirm close?" : `Close ${terminology.singular}`}
+              {inlineConfirm.isArmed("close")
+                ? translateWebSource(uiLocale, "Confirm close?")
+                : uiLocale !== "en"
+                  ? chineseText(locale, "关闭变更请求")
+                  : `Close ${terminology.singular}`}
             </MenuItem>
           </>
         ) : detail.state === "closed" && can("reopen") ? (
@@ -436,7 +483,9 @@ export function PullRequestActionsMenu({
             <MenuSeparator />
             <MenuItem disabled={actionPending} onClick={() => void perform("reopen")}>
               <PullRequestGlyph.reopen className="size-3.5" />
-              Reopen {terminology.singular}
+              {uiLocale !== "en"
+                ? chineseText(locale, "重新打开变更请求")
+                : `Reopen ${terminology.singular}`}
             </MenuItem>
           </>
         ) : detail.state === "merged" && can("revert") ? (
@@ -444,13 +493,19 @@ export function PullRequestActionsMenu({
             <MenuSeparator />
             <MenuItem
               closeOnClick={inlineConfirm.isArmed("revert")}
-              aria-label={inlineConfirm.isArmed("revert") ? "Confirm revert?" : "Revert changes"}
+              aria-label={
+                inlineConfirm.isArmed("revert")
+                  ? translateWebSource(uiLocale, "Confirm revert?")
+                  : t("pullRequests.actions.revert")
+              }
               variant={inlineConfirm.isArmed("revert") ? "destructive" : "default"}
               disabled={actionPending}
               {...inlineConfirm.props("revert", () => void perform("revert"))}
             >
               <RotateCcwIcon className="size-3.5" />
-              {inlineConfirm.isArmed("revert") ? "Confirm revert?" : "Revert changes"}
+              {inlineConfirm.isArmed("revert")
+                ? translateWebSource(uiLocale, "Confirm revert?")
+                : t("pullRequests.actions.revert")}
             </MenuItem>
           </>
         ) : null}
@@ -465,10 +520,14 @@ export function PullRequestActionsMenu({
               <Trash2Icon className="mt-1 size-3.5 shrink-0 self-start" />
               <span className="flex min-w-0 flex-col">
                 <span>
-                  {pendingAction === "delete-branch" ? "Deleting branch..." : "Delete branch"}
+                  {pendingAction === "delete-branch"
+                    ? translateWebSource(uiLocale, "Deleting branch...")
+                    : translateWebSource(uiLocale, "Delete branch")}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {environmentConnected ? detail.headBranch : "Reconnect to delete this branch"}
+                  {environmentConnected
+                    ? detail.headBranch
+                    : translateWebSource(uiLocale, "Reconnect to delete this branch")}
                 </span>
               </span>
             </MenuItem>

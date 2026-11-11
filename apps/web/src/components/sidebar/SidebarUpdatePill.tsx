@@ -1,8 +1,7 @@
-import {
-  type DesktopBridge,
-  type DesktopUpdateState,
-  managedUpdatesDenial,
-} from "@t3tools/contracts";
+import { managedUpdatesDenial } from "../../i18n/managedPolicyMessages";
+import { useI18n } from "../../i18n/WebI18nContext";
+import { readWebI18n } from "../../i18n/readWebI18n";
+import { type DesktopBridge, type DesktopUpdateState } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
 import { type ComponentProps, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -121,16 +120,17 @@ export function SidebarUpdateArchitectureWarning() {
 }
 
 function SidebarUpdateArchitectureWarningContent() {
+  const { t } = useI18n();
   const state = useDesktopUpdateState();
   const visible = shouldShowArm64IntelBuildWarning(state);
-  const description = state && visible ? getArm64IntelBuildWarningDescription(state) : null;
+  const description = state && visible ? getArm64IntelBuildWarningDescription(state, t) : null;
 
   if (!visible || !description) return null;
 
   return (
     <Alert variant="warning">
       <TriangleAlertIcon />
-      <AlertTitle>Intel build on Apple Silicon</AlertTitle>
+      <AlertTitle>{t("desktopUpdate.architectureTitle")}</AlertTitle>
       <AlertDescription>{description}</AlertDescription>
     </Alert>
   );
@@ -147,6 +147,7 @@ export async function downloadLocalUpdate(
     reportError = toastUpdateError,
   }: { readonly notifyDownloaded: boolean; readonly reportError?: ReportLocalUpdateError },
 ): Promise<boolean> {
+  const { t } = readWebI18n();
   try {
     const result = await bridge.downloadUpdate();
     if (result.completed && notifyDownloaded) {
@@ -155,12 +156,12 @@ export async function downloadLocalUpdate(
     const actionError = shouldToastDesktopUpdateActionResult(result)
       ? getDesktopUpdateActionError(result)
       : null;
-    if (actionError) reportError("Could not download update", actionError);
+    if (actionError) reportError(t("desktopUpdate.downloadError"), actionError);
     return result.completed;
   } catch (error) {
     reportError(
-      "Could not start update download",
-      error instanceof Error ? error.message : "An unexpected error occurred.",
+      t("desktopUpdate.startDownloadError"),
+      error instanceof Error ? error.message : t("desktopUpdate.unexpectedError"),
     );
     return false;
   }
@@ -171,6 +172,7 @@ export async function installLocalUpdate(
   reportError: ReportLocalUpdateError = toastUpdateError,
   expectedVersion?: string,
 ): Promise<boolean> {
+  const { t } = readWebI18n();
   try {
     const result = await bridge.installUpdate(expectedVersion);
     if (!result.accepted) {
@@ -181,12 +183,12 @@ export async function installLocalUpdate(
       ? getDesktopUpdateActionError(result)
       : null;
     if (!actionError) return true;
-    reportError("Could not install update", actionError);
+    reportError(t("desktopUpdate.installError"), actionError);
     return false;
   } catch (error) {
     reportError(
-      "Could not install update",
-      error instanceof Error ? error.message : "An unexpected error occurred.",
+      t("desktopUpdate.installError"),
+      error instanceof Error ? error.message : t("desktopUpdate.unexpectedError"),
     );
     return false;
   }
@@ -197,9 +199,10 @@ export function SidebarUpdatePill() {
 }
 
 function SidebarUpdateControl() {
+  const { t } = useI18n();
   const state = useDesktopUpdateState();
   // The desktop updates this machine, whose policy the primary environment reports.
-  const updatesDenial = managedUpdatesDenial(usePrimaryManagedPolicy());
+  const updatesDenial = managedUpdatesDenial(usePrimaryManagedPolicy(), t);
   const [isActionPending, setIsActionPending] = useState(false);
   const [providerCheck, setProviderCheck] = useState<"button" | "dialog" | null>(null);
   const isCheckingProviders = providerCheck === "button";
@@ -250,16 +253,18 @@ function SidebarUpdateControl() {
     showCheckIcon,
   });
   const idleTooltip =
-    !showUpdateDetails && !showCheckIcon ? getDesktopUpdateIdleTooltip(state, updatesDenial) : null;
+    !showUpdateDetails && !showCheckIcon
+      ? getDesktopUpdateIdleTooltip(state, t, updatesDenial)
+      : null;
   const tooltip = runsEverything
     ? everything.summary
     : showUpdateDetails
       ? state
-        ? getDesktopUpdateButtonTooltip(state)
-        : "Update available"
+        ? getDesktopUpdateButtonTooltip(state, t)
+        : t("desktopUpdate.availableTitle")
       : showCheckIcon
-        ? "Checking for updates…"
-        : (idleTooltip?.title ?? "Check for updates");
+        ? t("desktopUpdate.checking")
+        : (idleTooltip?.title ?? t("desktopUpdate.check"));
   const disabled = showCheckIcon
     ? true
     : runsEverything
@@ -307,7 +312,7 @@ function SidebarUpdateControl() {
       let confirmed = false;
       try {
         confirmed = await ensureLocalApi().dialogs.confirm(
-          getDesktopUpdateInstallConfirmationMessage(state),
+          getDesktopUpdateInstallConfirmationMessage(state, t),
           { initialFocus: "confirm" },
         );
       } catch (error) {
@@ -315,8 +320,8 @@ function SidebarUpdateControl() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Could not confirm update",
-            description: error instanceof Error ? error.message : "Update confirmation failed.",
+            title: t("desktopUpdate.confirmError"),
+            description: error instanceof Error ? error.message : t("desktopUpdate.confirmFailed"),
           }),
         );
         return;
@@ -340,11 +345,9 @@ function SidebarUpdateControl() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Could not check for updates",
+            title: t("desktopUpdate.checkError"),
             description:
-              updatesDenial ??
-              result.state.message ??
-              "Automatic updates are not available in this build.",
+              updatesDenial ?? result.state.message ?? t("desktopUpdate.unavailableDescription"),
           }),
         );
       })
@@ -352,8 +355,8 @@ function SidebarUpdateControl() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Could not check for updates",
-            description: error instanceof Error ? error.message : "Update check failed.",
+            title: t("desktopUpdate.checkError"),
+            description: error instanceof Error ? error.message : t("desktopUpdate.checkFailed"),
           }),
         );
       });
@@ -384,8 +387,8 @@ function SidebarUpdateControl() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Could not update everything",
-          description: error instanceof Error ? error.message : "An unexpected error occurred.",
+          title: t("desktopUpdate.everythingError"),
+          description: error instanceof Error ? error.message : t("desktopUpdate.unexpectedError"),
         }),
       );
     }
@@ -562,7 +565,7 @@ function SidebarUpdateControl() {
         {showReleaseNotesPopover && state ? (
           <PopoverPopup
             align="center"
-            aria-label="Update release notes"
+            aria-label={t("desktopUpdate.releaseNotesLabel")}
             initialFocus={false}
             onKeyDownCapture={(event) => {
               if (

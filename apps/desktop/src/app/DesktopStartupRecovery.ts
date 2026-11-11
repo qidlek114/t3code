@@ -1,4 +1,5 @@
-import type { DesktopUpdateState } from "@t3tools/contracts";
+import { DEFAULT_APP_LOCALE_PREFERENCE, type DesktopUpdateState } from "@t3tools/contracts";
+import { resolveAppLocale, type ResolvedAppLocale } from "@t3tools/shared/appLocale";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
@@ -17,8 +18,14 @@ import type { BackendStartupFailure } from "../backend/DesktopBackendManager.ts"
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import * as DesktopObservability from "./DesktopObservability.ts";
 import * as DesktopState from "./DesktopState.ts";
+import * as DesktopClientSettings from "../settings/DesktopClientSettings.ts";
+import { resolveStartupRecoveryMessages } from "./DesktopStartupRecoveryMessages.ts";
 
-const RELEASES_URL = "https://github.com/pingdotgg/t3code/releases";
+// Manual recovery must stay on the multilingual fork.
+const RELEASES_URL = "https://github.com/qidlek114/t3code/releases";
+export const startupRecoveryReleaseUrl = (version?: string): string =>
+  version ? `${RELEASES_URL}/tag/v${encodeURIComponent(version)}` : RELEASES_URL;
+
 const LAST_STARTED_VERSION_FILE = "desktop-last-started-version";
 // Buttons are plain links to this host; will-navigate cancels them and runs the action.
 const ACTION_ORIGIN = "https://startup-recovery.invalid";
@@ -78,47 +85,55 @@ const escapeHtml = (value: string) =>
 const actionLink = (action: StartupRecoveryAction, label: string, primary = false) =>
   `<a class="button${primary ? " primary" : ""}" href="${ACTION_ORIGIN}/${action}">${escapeHtml(label)}</a>`;
 
-function describeOffer(offer: StartupRecoveryOffer): { text: string; action: string } {
+function describeOffer(
+  offer: StartupRecoveryOffer,
+  messages: ReturnType<typeof resolveStartupRecoveryMessages>,
+): { text: string; action: string } {
   switch (offer._tag) {
     case "Checking":
-      return { text: "Checking for a newer version…", action: "" };
+      return { text: messages.checking, action: "" };
     case "Update":
       return {
-        text: `Version ${offer.version} is available. It can contain a fix.`,
-        action: actionLink("update", `Update to ${offer.version}`, true),
+        text: messages.update(offer.version),
+        action: actionLink("update", messages.updateAction(offer.version), true),
       };
     case "Downloading":
       return {
-        text: `Downloading ${offer.version}${offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`}. T3 Code restarts when the download is done.`,
+        text: messages.downloading(
+          offer.version,
+          offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`,
+        ),
         action: "",
       };
     case "Reinstall":
       return {
-        text: `Version ${offer.version} started correctly on this computer. Download it and install it to go back.`,
-        action: actionLink("reinstall", `Download ${offer.version}`, true),
+        text: messages.reinstall(offer.version),
+        action: actionLink("reinstall", messages.reinstallAction(offer.version), true),
       };
     case "Releases":
       return {
-        text: "Get a different version from the releases page.",
-        action: actionLink("releases", "Open releases", true),
+        text: messages.releases,
+        action: actionLink("releases", messages.releasesAction, true),
       };
     case "ManagedPolicy":
       return {
-        text: "Your organization's managed policy stopped T3 Code from starting. Send the details below to your IT administrator.",
+        text: messages.managedPolicy,
         action: "",
       };
   }
 }
 
-function buildStartupRecoveryHtml(input: {
+export function buildStartupRecoveryHtml(input: {
+  readonly locale: ResolvedAppLocale;
   readonly appVersion: string;
   readonly failure: BackendStartupFailure;
   readonly offer: StartupRecoveryOffer;
   readonly logDir: string;
 }): string {
-  const offer = describeOffer(input.offer);
+  const messages = resolveStartupRecoveryMessages(input.locale, []);
+  const offer = describeOffer(input.offer, messages);
   const output = input.failure.output.trim();
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>T3 Code could not start</title><style>
+  return `<!doctype html><html lang="${input.locale}"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>${escapeHtml(messages.title)}</title><style>
 :root{color-scheme:light dark;--bg:#fff;--fg:#111;--muted:#666;--line:#ddd;--code:#f4f4f4}
 @media (prefers-color-scheme:dark){:root{--bg:#000;--fg:#fff;--muted:#999;--line:#333;--code:#111}}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg)}
@@ -129,12 +144,12 @@ h1{font-size:18px;margin:0}p{margin:0}.muted{color:var(--muted)}
 .button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 pre{flex:1;min-height:60px;margin:0;overflow:auto;background:var(--code);border:1px solid var(--line);border-radius:6px;padding:10px;font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
 </style></head><body>
-<h1>T3 Code could not start</h1>
-<p>${escapeHtml(input.failure.reason)}</p>
+<h1>${escapeHtml(messages.title)}</h1>
+<p>${escapeHtml(messages.failureReason(input.failure.reason))}</p>
 <p>${escapeHtml(offer.text)}</p>
-<div class="actions">${offer.action}${actionLink("copy", "Copy details")}${actionLink("quit", "Quit")}</div>
-<pre>${escapeHtml(output.length > 0 ? output : "The server wrote no output.")}</pre>
-<p class="muted">Version ${escapeHtml(input.appVersion)}. T3 Code tries again in the background. Logs: ${escapeHtml(input.logDir)}</p>
+<div class="actions">${offer.action}${actionLink("copy", messages.copy)}${actionLink("quit", messages.quit)}</div>
+<pre>${escapeHtml(output.length > 0 ? output : messages.noOutput)}</pre>
+<p class="muted">${escapeHtml(messages.footer(input.appVersion, input.logDir))}</p>
 </body></html>`;
 }
 
@@ -142,6 +157,7 @@ pre{flex:1;min-height:60px;margin:0;overflow:auto;background:var(--code);border:
 export const listen: Effect.Effect<
   void,
   never,
+  | DesktopClientSettings.DesktopClientSettings
   | DesktopState.DesktopState
   | DesktopUpdates.DesktopUpdates
   | DesktopEnvironment.DesktopEnvironment
@@ -160,6 +176,16 @@ export const listen: Effect.Effect<
   const electronTheme = yield* ElectronTheme.ElectronTheme;
   const electronWindow = yield* ElectronWindow.ElectronWindow;
   const fileSystem = yield* FileSystem.FileSystem;
+  const clientSettings = yield* DesktopClientSettings.DesktopClientSettings;
+  const settings = yield* clientSettings.get.pipe(Effect.orElseSucceed(() => Option.none()));
+  const locale = resolveAppLocale(
+    Option.match(settings, {
+      onNone: () => DEFAULT_APP_LOCALE_PREFERENCE,
+      onSome: (value) => value.appLocale,
+    }),
+    [yield* electronApp.systemLocale],
+  );
+  const messages = resolveStartupRecoveryMessages(locale, []);
   const runFork = Effect.runForkWith(yield* Effect.context<never>());
 
   const lastStartedVersionPath = environment.path.join(
@@ -195,6 +221,7 @@ export const listen: Effect.Effect<
     const failure = yield* Ref.get(failureRef);
     if (Option.isNone(window) || Option.isNone(failure) || window.value.isDestroyed()) return;
     const html = buildStartupRecoveryHtml({
+      locale,
       appVersion: environment.appVersion,
       failure: failure.value,
       offer: yield* offer,
@@ -223,11 +250,11 @@ export const listen: Effect.Effect<
       }
       case "reinstall":
         if (current._tag === "Reinstall") {
-          yield* electronShell.openExternal(`${RELEASES_URL}/tag/v${current.version}`);
+          yield* electronShell.openExternal(startupRecoveryReleaseUrl(current.version));
         }
         return;
       case "releases":
-        yield* electronShell.openExternal(RELEASES_URL);
+        yield* electronShell.openExternal(startupRecoveryReleaseUrl());
         return;
       case "copy": {
         const failure = yield* Ref.get(failureRef);
@@ -268,7 +295,7 @@ export const listen: Effect.Effect<
           minWidth: 420,
           minHeight: 320,
           show: false,
-          title: "T3 Code could not start",
+          title: messages.title,
           autoHideMenuBar: true,
           backgroundColor: shouldUseDarkColors ? "#000000" : "#ffffff",
           webPreferences: {

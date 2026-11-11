@@ -18,6 +18,7 @@ const { add, update, openExternal, commands, starred, page } = vi.hoisted(() => 
 vi.mock("./ui/toast", () => ({ toastManager: { add, update, close: vi.fn() } }));
 vi.mock("../localApi", () => ({ readLocalApi: () => ({ shell: { openExternal } }) }));
 vi.mock("../rpc/atomRegistry", () => ({ appAtomRegistry: {} }));
+vi.mock("../i18n/readWebI18n", () => ({ readWebI18n: () => ({ locale: "en" }) }));
 vi.mock("../state/sourceControl", () => ({ sourceControlEnvironment: commands }));
 vi.mock("@t3tools/client-runtime/state/runtime", () => ({
   runAtomCommand: async (_registry: unknown, command: unknown) => {

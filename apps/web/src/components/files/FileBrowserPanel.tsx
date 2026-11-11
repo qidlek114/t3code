@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import type {
   ContextMenuItem as TreeContextMenuItem,
@@ -53,6 +55,7 @@ function treePath(entry: ProjectEntry): string {
 }
 
 function RefreshFilesButton(props: { isPending: boolean; onRefresh: () => void }) {
+  const { locale } = useI18n();
   return (
     <Tooltip>
       <TooltipTrigger
@@ -61,14 +64,18 @@ function RefreshFilesButton(props: { isPending: boolean; onRefresh: () => void }
             type="button"
             variant="ghost"
             size="icon-xs"
-            aria-label="Refresh workspace files"
+            aria-label={translateWebSource(locale, "Refresh workspace files")}
             onClick={props.onRefresh}
           />
         }
       >
         <RefreshIcon refreshing={props.isPending} />
       </TooltipTrigger>
-      <TooltipPopup>{props.isPending ? "Refreshing…" : "Refresh files"}</TooltipPopup>
+      <TooltipPopup>
+        {props.isPending
+          ? translateWebSource(locale, "Refreshing…")
+          : translateWebSource(locale, "Refresh files")}
+      </TooltipPopup>
     </Tooltip>
   );
 }
@@ -80,6 +87,7 @@ function FileSearchField(props: {
   onValueChange: (value: string) => void;
   value: string;
 }) {
+  const { locale } = useI18n();
   return (
     <InputGroup variant="ghost" className="h-7 min-w-0 flex-1">
       <InputGroupInput
@@ -88,7 +96,7 @@ function FileSearchField(props: {
         size="sm"
         value={props.value}
         aria-label={props.ariaLabel}
-        placeholder="Search files"
+        placeholder={translateWebSource(locale, "Search files")}
         data-workspace-focus-default
         spellCheck={false}
         onChange={(event) => props.onValueChange(event.target.value)}
@@ -143,6 +151,7 @@ export default function FileBrowserPanel({
   workspaceMutationId,
   hostFolder = false,
 }: FileBrowserPanelProps) {
+  const { t, locale: newCopyLocale } = useI18n();
   const panelPath = (relativePath: string) =>
     hostFolder ? joinHostPath(cwd, relativePath) : relativePath;
   const { resolvedTheme } = useTheme();
@@ -197,8 +206,8 @@ export default function FileBrowserPanel({
         const clicked = await api.contextMenu.show(
           [
             ...fileMenuItems,
-            { id: "copy-mention", label: "Copy mention" },
-            { id: "add-to-chat", label: "Add to chat" },
+            { id: "copy-mention", label: translateWebSource(newCopyLocale, "Copy mention") },
+            { id: "add-to-chat", label: translateWebSource(newCopyLocale, "Add to chat") },
           ],
           position,
         );
@@ -215,14 +224,17 @@ export default function FileBrowserPanel({
             await writeTextToClipboard(mention);
             toastManager.add({
               type: "success",
-              title: "Mention copied",
+              title: translateWebSource(newCopyLocale, "Mention copied"),
               description: relativePath,
             });
           } catch (error) {
             toastManager.add({
               type: "error",
-              title: "Failed to copy mention",
-              description: error instanceof Error ? error.message : "An error occurred.",
+              title: translateWebSource(newCopyLocale, "Failed to copy mention"),
+              description:
+                error instanceof Error
+                  ? error.message
+                  : translateWebSource(newCopyLocale, "An error occurred."),
             });
           }
           return;
@@ -232,8 +244,11 @@ export default function FileBrowserPanel({
           if (!composer) {
             toastManager.add({
               type: "error",
-              title: "Unable to add to chat",
-              description: "Open a chat for this project and try again.",
+              title: translateWebSource(newCopyLocale, "Unable to add to chat"),
+              description: translateWebSource(
+                newCopyLocale,
+                "Open a chat for this project and try again.",
+              ),
             });
             return;
           }
@@ -241,8 +256,11 @@ export default function FileBrowserPanel({
           if (!inserted) {
             toastManager.add({
               type: "error",
-              title: "Unable to add to chat",
-              description: "The chat isn't ready to accept input right now.",
+              title: translateWebSource(newCopyLocale, "Unable to add to chat"),
+              description: translateWebSource(
+                newCopyLocale,
+                "The chat isn't ready to accept input right now.",
+              ),
             });
           }
         }
@@ -289,7 +307,7 @@ export default function FileBrowserPanel({
       row.kind === "directory" &&
       row.isExpanded &&
       loadingDirectoriesRef.current.has(item.path.replace(/\/$/, ""))
-        ? { icon: "t3-tree-icon-loading", title: "Loading…" }
+        ? { icon: "t3-tree-icon-loading", title: translateWebSource(newCopyLocale, "Loading…") }
         : null,
     search: false,
     onSearchChange: (value) => setQuery(value ?? ""),
@@ -490,7 +508,7 @@ export default function FileBrowserPanel({
         <RefreshFilesButton isPending={isPending} onRefresh={handleRefresh} />
         <FileSearchField
           name="project-files-search"
-          ariaLabel={`Search ${projectName} files`}
+          ariaLabel={t("files.residual.searchProject", { project: projectName })}
           value={search.value}
           onValueChange={handleSearchValueChange}
           onClose={closeSearch}
@@ -505,8 +523,8 @@ export default function FileBrowserPanel({
                   variant="ghost"
                   aria-label={
                     expandAll || allDirectoriesExpanded
-                      ? "Collapse all folders"
-                      : "Expand all folders"
+                      ? translateWebSource(newCopyLocale, "Collapse all folders")
+                      : translateWebSource(newCopyLocale, "Expand all folders")
                   }
                   onClick={toggleAllDirectories}
                 />
@@ -519,7 +537,9 @@ export default function FileBrowserPanel({
               )}
             </TooltipTrigger>
             <TooltipPopup>
-              {expandAll || allDirectoriesExpanded ? "Collapse all folders" : "Expand all folders"}
+              {expandAll || allDirectoriesExpanded
+                ? translateWebSource(newCopyLocale, "Collapse all folders")
+                : translateWebSource(newCopyLocale, "Expand all folders")}
             </TooltipPopup>
           </Tooltip>
         ) : null}
@@ -530,12 +550,12 @@ export default function FileBrowserPanel({
           onClick={handleRefresh}
           className="p-4 text-left text-xs leading-relaxed text-destructive"
         >
-          {error ?? pathSearch.error} Click to retry.
+          {error ?? pathSearch.error} {translateWebSource(newCopyLocale, "Click to retry.")}
         </button>
       ) : null}
       {query.trim() && pathSearch.truncated && !pathSearch.isPending ? (
         <div className="px-3 py-1 text-xs text-muted-foreground">
-          More matches available. Refine your search.
+          {translateWebSource(newCopyLocale, "More matches available. Refine your search.")}
         </div>
       ) : null}
       {(!ready || pathSearch.isPending) && (
@@ -547,19 +567,19 @@ export default function FileBrowserPanel({
               : "px-3 py-1 text-xs text-muted-foreground"
           }
         >
-          Loading files…
+          {translateWebSource(newCopyLocale, "Loading files…")}
         </div>
       )}
       {hasNoSearchMatches ? (
         ready && !isPending && !pathSearch.isPending && !error && !pathSearch.error ? (
           <div role="status" className="px-3 py-4 text-xs text-muted-foreground">
-            No matching files.
+            {translateWebSource(newCopyLocale, "No matching files.")}
           </div>
         ) : null
       ) : (
         <FileTree
           model={model}
-          aria-label={`${projectName} files`}
+          aria-label={t("files.residual.projectFiles", { project: projectName })}
           className="min-h-0 flex-1 overflow-hidden"
           style={pierreTreeStyle(resolvedTheme)}
         />

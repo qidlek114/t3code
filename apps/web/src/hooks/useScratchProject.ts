@@ -18,14 +18,16 @@ import {
   usePrimaryEnvironmentId,
 } from "~/state/environments";
 import { projectEnvironment } from "~/state/projects";
+import { readWebI18n } from "~/i18n/readWebI18n";
 import { type NewThreadHandler, useNewThreadHandler } from "./useHandleNewThread";
 
-function reportScratchFailure(title: string, error: unknown) {
+function reportScratchFailure(title: string | undefined, error: unknown) {
+  const { t } = readWebI18n();
   toastManager.add(
     stackedThreadToast({
       type: "error",
-      title,
-      description: error instanceof Error ? error.message : "An error occurred.",
+      title: title ?? t("newProject.scratchError"),
+      description: error instanceof Error ? error.message : t("common.error"),
     }),
   );
 }
@@ -61,7 +63,7 @@ export function createScratchProjectActions(input: {
 
   const openScratchProject = async (
     environmentId: EnvironmentId,
-    failureTitle = "Could not start without a project",
+    failureTitle?: string,
   ): Promise<EnvironmentProject | null> => {
     const command = projectEnvironment.openScratch;
     const result = await runAtomCommand(
@@ -82,9 +84,7 @@ export function createScratchProjectActions(input: {
     if (project) {
       await input
         .handleNewThread(scopeProjectRef(project.environmentId, project.id))
-        .catch((error: unknown) =>
-          reportScratchFailure("Could not start without a project", error),
-        );
+        .catch((error: unknown) => reportScratchFailure(undefined, error));
     }
   };
 

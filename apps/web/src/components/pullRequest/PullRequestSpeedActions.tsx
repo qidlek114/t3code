@@ -1,3 +1,5 @@
+import { translateWebSource } from "~/i18n/messages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { useAtomValue } from "@effect/atom-react";
 import type { PullRequestAction, PullRequestSummary } from "@t3tools/contracts";
 import { createContext, use, type ReactNode } from "react";
@@ -45,6 +47,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
   sweeping?: boolean;
   onCloseSweepStart?: (entry: Entry, event: PointerEvent) => void;
 }) {
+  const { t, locale: uiLocale } = useI18n();
   const canWrite = useAtomValue(
     pullRequestEnvironment.runAction.permissionAtom(entry.environmentId),
   );
@@ -68,7 +71,9 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
         (method) => detail.mergeCapabilities[method],
       );
       if (allowed.length === 0)
-        throw new Error("No merge method is available for this repository.");
+        throw new Error(
+          translateWebSource(uiLocale, "No merge method is available for this repository."),
+        );
       return resolvePullRequestMergeMethod(
         allowed,
         null,
@@ -84,10 +89,13 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
     <SpeedModeGroup
       busy={busy}
       pending={actionPending || closing}
-      label={`Quick actions for ${terminology.singular} #${entry.number}`}
+      label={t("pullRequests.speed.forRequest", {
+        request: translateWebSource(uiLocale, terminology.singular),
+        number: entry.number,
+      })}
     >
       {actions.map((action) => {
-        const label = ACTIONS[action].label;
+        const label = translateWebSource(uiLocale, ACTIONS[action].label);
         const Icon = ACTIONS[action].Icon;
         return (
           <Tooltip key={action}>
@@ -112,10 +120,15 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
             </TooltipTrigger>
             <TooltipPopup>
               {action === "merge" && entry.stack
-                ? `Open this ${terminology.singular} to merge its stack`
+                ? t("pullRequests.stack.openToMerge", {
+                    request: translateWebSource(uiLocale, terminology.singular),
+                  })
                 : action === "close" && onCloseSweepStart
-                  ? "Close immediately, or drag across rows to close several"
-                  : `${label} immediately`}
+                  ? translateWebSource(
+                      uiLocale,
+                      "Close immediately, or drag across rows to close several",
+                    )
+                  : t("pullRequests.speed.immediately", { action: label })}
             </TooltipPopup>
           </Tooltip>
         );

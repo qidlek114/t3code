@@ -1,3 +1,4 @@
+import { useChatUpdateTranslation } from "./v018Messages";
 import type { VoiceInputState } from "@t3tools/client-runtime/voice-input";
 import { CheckIcon, MicIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -112,6 +113,7 @@ function ComposerSpeechStatus(props: {
   level: number;
   recordingLimitSeconds?: number | undefined;
 }) {
+  const tx = useChatUpdateTranslation();
   const presentation = resolveSpeechPresentation(props.state, props.progress);
 
   if (!presentation.status) return null;
@@ -123,7 +125,7 @@ function ComposerSpeechStatus(props: {
       className="flex h-7 min-w-0 flex-1 items-center gap-2"
       role="status"
       aria-live={isRecording ? "off" : "polite"}
-      aria-label={presentation.status}
+      aria-label={tx(presentation.status)}
     >
       {isRecording ? (
         <RecordingStatus level={props.level} recordingLimitSeconds={props.recordingLimitSeconds} />
@@ -134,7 +136,7 @@ function ComposerSpeechStatus(props: {
             isError && "text-destructive",
           )}
         >
-          {presentation.status}
+          {tx(presentation.status)}
         </span>
       )}
     </div>
@@ -146,6 +148,7 @@ function ComposerSpeechCancelButton(props: {
   shortcutLabel?: string | null;
   onCancel(): void;
 }) {
+  const tx = useChatUpdateTranslation();
   if (props.state.phase === "idle") return null;
   const label = props.state.phase === "error" ? "Dismiss voice input error" : "Cancel voice input";
 
@@ -157,7 +160,7 @@ function ComposerSpeechCancelButton(props: {
             type="button"
             size="icon-sm-pill"
             variant="ghost"
-            aria-label={label}
+            aria-label={tx(label)}
             onPointerDown={(event) => event.preventDefault()}
             onClick={props.onCancel}
             className="shrink-0"
@@ -167,7 +170,7 @@ function ComposerSpeechCancelButton(props: {
         }
       />
       <TooltipPopup side="top">
-        {label}
+        {tx(label)}
         {props.shortcutLabel ? ` (${props.shortcutLabel})` : ""}
       </TooltipPopup>
     </Tooltip>
@@ -182,6 +185,7 @@ export function ComposerSpeechButton(props: {
   onStart(): void;
   onCancel(): void;
 }) {
+  const tx = useChatUpdateTranslation();
   const presentation = resolveSpeechPresentation(props.state, props.progress);
   const label = "Start voice input";
 
@@ -195,7 +199,7 @@ export function ComposerSpeechButton(props: {
             type="button"
             size="icon-sm"
             variant="ghost"
-            aria-label={label}
+            aria-label={tx(label)}
             disabled={props.disabled}
             onPointerDown={(event) => event.preventDefault()}
             onClick={() => {
@@ -209,7 +213,7 @@ export function ComposerSpeechButton(props: {
         }
       />
       <TooltipPopup side="top">
-        {label}
+        {tx(label)}
         {props.shortcutLabel ? ` (${props.shortcutLabel})` : ""}
       </TooltipPopup>
     </Tooltip>
@@ -229,6 +233,7 @@ export function ComposerSpeechRecordingPill(props: {
   onCancel(): void;
   onSkipPostProcessing(): void;
 }) {
+  const tx = useChatUpdateTranslation();
   const presentation = resolveSpeechPresentation(props.state, props.progress);
   if (props.state.phase === "error") {
     return (
@@ -270,7 +275,7 @@ export function ComposerSpeechRecordingPill(props: {
           onClick={props.onSkipPostProcessing}
           className="shrink-0"
         >
-          Skip
+          {tx("Skip")}
         </Button>
       ) : (
         <Tooltip>
@@ -279,7 +284,7 @@ export function ComposerSpeechRecordingPill(props: {
               <Button
                 type="button"
                 size="icon-sm-pill"
-                aria-label={label}
+                aria-label={tx(label)}
                 disabled={!presentation.confirmEnabled}
                 onPointerDown={(event) => event.preventDefault()}
                 onClick={props.onStop}
@@ -290,7 +295,7 @@ export function ComposerSpeechRecordingPill(props: {
             }
           />
           <TooltipPopup side="top">
-            {label}
+            {tx(label)}
             {presentation.confirmEnabled && props.finishShortcutLabel
               ? ` (${props.finishShortcutLabel})`
               : ""}

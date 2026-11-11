@@ -1,3 +1,5 @@
+import { useSourceTranslation } from "~/i18n/useSourceTranslation";
+import { LocalizedText } from "~/i18n/LocalizedText";
 import { useAuth, useClerk } from "@clerk/react";
 import { useAtomValue } from "@effect/atom-react";
 import { managedRelaySessionAtom } from "@t3tools/client-runtime/relay";
@@ -73,6 +75,8 @@ function connectTransport(
  * T3 Connect here and approves with that session, so no sign-in code is needed.
  */
 export function ApproveAgentSurface() {
+  const localizeUi = useSourceTranslation();
+
   const [environmentId] = useState(readEnvironmentId);
   const [authorization] = useState(readAuthorizationRequest);
   // Another site could frame this page and steer a click onto Approve.
@@ -103,8 +107,8 @@ export function ApproveAgentSurface() {
   if (environmentId === null || transport === null) {
     return (
       <Message
-        title="This sign-in link is incomplete"
-        description="Close this page and start the sign-in again from your agent."
+        title={localizeUi("This sign-in link is incomplete")}
+        description={localizeUi("Close this page and start the sign-in again from your agent.")}
       />
     );
   }
@@ -112,8 +116,10 @@ export function ApproveAgentSurface() {
   if (framed) {
     return (
       <Message
-        title="Open this page in its own window"
-        description="For your safety, agent sign-ins cannot be approved inside another site."
+        title={localizeUi("Open this page in its own window")}
+        description={localizeUi(
+          "For your safety, agent sign-ins cannot be approved inside another site.",
+        )}
       />
     );
   }
@@ -123,8 +129,8 @@ export function ApproveAgentSurface() {
       <StandalonePage>
         <StandalonePageHeader
           context="Agent sign-in"
-          title="Connecting to T3 Connect"
-          description="One moment while your account loads."
+          title={localizeUi("Connecting to T3 Connect")}
+          description={localizeUi("One moment while your account loads.")}
         />
         <Spinner className="mt-6" size="lg" tone="muted" />
       </StandalonePage>
@@ -134,12 +140,14 @@ export function ApproveAgentSurface() {
   if (!isSignedIn) {
     return (
       <Message
-        title="Sign in to approve"
-        description="Sign in to T3 Connect with the account this environment is linked to."
+        title={localizeUi("Sign in to approve")}
+        description={localizeUi(
+          "Sign in to T3 Connect with the account this environment is linked to.",
+        )}
       >
         <div className="mt-6">
           <Button type="button" onClick={openSignIn}>
-            Sign in
+            <LocalizedText source={"Sign in"} />
           </Button>
         </div>
       </Message>
@@ -164,7 +172,7 @@ export function ApproveAgentSurface() {
                 <a href={`${new URL("/connect-agent", environment.url).toString()}?${search}`} />
               }
             >
-              Use a sign-in code instead
+              <LocalizedText source={"Use a sign-in code instead"} />
             </Button>
           ) : null}
           <Button
@@ -173,7 +181,7 @@ export function ApproveAgentSurface() {
             onClick={() => void clerk.signOut({ redirectUrl: window.location.href })}
             type="button"
           >
-            Use another account
+            <LocalizedText source={"Use another account"} />
           </Button>
         </div>
       }

@@ -1,3 +1,6 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
+
 import type {
   EditorId,
   EnvironmentId,
@@ -80,6 +83,7 @@ export function RightPanelSurfaceContent(props: {
   readonly files: RightPanelFileProps;
   readonly sideChatParentPanel: SideChatParentPanel;
 }) {
+  const { locale } = useI18n();
   const { surface, threadRef, visible, onCloseSurface } = props;
   if (surface === null) return null;
   switch (surface.kind) {
@@ -123,8 +127,11 @@ export function RightPanelSurfaceContent(props: {
       if (!pullRequest.supported) {
         return (
           <PullRequestsUnavailableState
-            title="Pull requests unavailable"
-            error="Update this environment's T3 Code server to browse pull requests."
+            title={translateWebSource(locale, "Pull requests unavailable")}
+            error={translateWebSource(
+              locale,
+              "Update this environment's T3 Code server to browse pull requests.",
+            )}
           />
         );
       }

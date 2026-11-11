@@ -1,3 +1,6 @@
+import { translateWebExtraSource } from "~/i18n/webExtraMessages";
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import {
   useEffect,
   useEffectEvent,
@@ -52,6 +55,10 @@ function PdfPage(props: {
   onSize: (index: number, ratio: number) => void;
   onError: (error: string) => void;
 }) {
+  const { locale, t } = useI18n();
+  const pageFailure = useEffectEvent(() =>
+    translateWebExtraSource(locale, "This PDF page could not render."),
+  );
   const canvas = useRef<HTMLCanvasElement>(null);
   const text = useRef<HTMLDivElement>(null);
   const { document: pdf, index, width, onSize, onError } = props;
@@ -93,8 +100,7 @@ function PdfPage(props: {
       });
       await Promise.all([paint.promise, layer.render()]);
     })().catch((cause: unknown) => {
-      if (!cancelled)
-        onError(cause instanceof Error ? cause.message : "This PDF page could not render.");
+      if (!cancelled) onError(cause instanceof Error ? cause.message : pageFailure());
     });
     return () => {
       cancelled = true;
@@ -123,7 +129,11 @@ function PdfPage(props: {
   }, [props.query]);
   return (
     <>
-      <canvas ref={canvas} aria-label={`Page ${index + 1}`} className="block h-full w-full" />
+      <canvas
+        ref={canvas}
+        aria-label={t("webExtra.pdf.page", { page: index + 1 })}
+        className="block h-full w-full"
+      />
       <div ref={text} data-pdf-text-layer />
     </>
   );
@@ -141,6 +151,10 @@ export default function PdfViewer(props: {
   );
   const [initialView] = useState<PdfViewState>(
     () => savedPosition ?? props.initialView ?? { page: 0, offset: 0, zoom: null, left: 0 },
+  );
+  const { locale: previewLocale, t } = useI18n();
+  const translatePreviewSource = useEffectEvent((source: string) =>
+    translateWebExtraSource(previewLocale, source),
   );
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -165,7 +179,7 @@ export default function PdfViewer(props: {
     let disposed = false;
     let task: ReturnType<typeof openPdf> | undefined;
     const timeout = setTimeout(() => {
-      setError("This PDF took too long to load. Try again.");
+      setError(translatePreviewSource("This PDF took too long to load. Try again."));
       controller.abort();
       void task?.destroy();
     }, 30_000);
@@ -180,7 +194,11 @@ export default function PdfViewer(props: {
         task = openPdf(bytes);
         const document = await task.promise;
         if (document.numPages > MAX_PAGES)
-          throw new Error("Preview limited to 2,000 pages. Save this PDF to read it in full.");
+          throw new Error(
+            translatePreviewSource(
+              "Preview limited to 2,000 pages. Save this PDF to read it in full.",
+            ),
+          );
         const first = (await document.getPage(1)).getViewport({ scale: 1 });
         const sizes = await Promise.all(
           Array.from({ length: Math.min(initialPage + 1, document.numPages) }, async (_, index) => {
@@ -202,7 +220,9 @@ export default function PdfViewer(props: {
       })
       .catch((cause: unknown) => {
         if (!disposed && !controller.signal.aborted)
-          setError(cause instanceof Error ? cause.message : "Unable to open PDF.");
+          setError(
+            cause instanceof Error ? cause.message : translatePreviewSource("Unable to open PDF."),
+          );
       })
       .finally(() => clearTimeout(timeout));
     return () => {
@@ -320,7 +340,9 @@ export default function PdfViewer(props: {
           size += text.length;
           if (size > MAX_FIND_TEXT)
             throw new Error(
-              "This PDF has too much text to search. Save it to search in another app.",
+              translatePreviewSource(
+                "This PDF has too much text to search. Save it to search in another app.",
+              ),
             );
           if (pdfFindIncludes(text, query)) found.push(index);
         }
@@ -330,7 +352,11 @@ export default function PdfViewer(props: {
       })()
         .catch((cause: unknown) => {
           if (!cancelled)
-            setFindError(cause instanceof Error ? cause.message : "Could not search this PDF.");
+            setFindError(
+              cause instanceof Error
+                ? cause.message
+                : translatePreviewSource("Could not search this PDF."),
+            );
         })
         .finally(() => {
           if (!cancelled) setFinding(false);
@@ -345,41 +371,43 @@ export default function PdfViewer(props: {
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-1 border-b border-border/60 px-2 py-1 text-xs">
         <span className="mr-auto px-1 tabular-nums" aria-live="polite">
-          {pdf ? `${current + 1} / ${pdf.numPages} pages` : "PDF"}
+          {pdf ? t("webExtra.pdf.pageCount", { page: current + 1, count: pdf.numPages }) : "PDF"}
         </span>
         <FileSurfaceAction
-          label="Previous page"
+          label={translateWebSource(previewLocale, "Previous page")}
           disabled={!pdf || current === 0}
           onPress={() => showPage(current - 1)}
         >
           <ChevronUpIcon className="size-3.5" />
         </FileSurfaceAction>
         <FileSurfaceAction
-          label="Next page"
+          label={translateWebSource(previewLocale, "Next page")}
           disabled={!pdf || current + 1 >= pdf.numPages}
           onPress={() => showPage(current + 1)}
         >
           <ChevronDownIcon className="size-3.5" />
         </FileSurfaceAction>
         <FileSurfaceAction
-          label="Zoom out"
+          label={translateWebSource(previewLocale, "Zoom out")}
           disabled={scale <= PDF_MIN_ZOOM}
           onPress={() => changeZoom(stepPdfZoom(scale, -1))}
         >
           <MinusIcon className="size-3.5" />
         </FileSurfaceAction>
         <span className="min-w-14 text-center tabular-nums">
-          {zoom === null ? "Fit width" : `${Math.round(scale * 100)}%`}
+          {zoom === null
+            ? translateWebExtraSource(previewLocale, "Fit width")
+            : `${Math.round(scale * 100)}%`}
         </span>
         <FileSurfaceAction
-          label="Zoom in"
+          label={translateWebSource(previewLocale, "Zoom in")}
           disabled={scale >= PDF_MAX_ZOOM}
           onPress={() => changeZoom(stepPdfZoom(scale, 1))}
         >
           <PlusIcon className="size-3.5" />
         </FileSurfaceAction>
         <FileSurfaceAction
-          label="Fit width"
+          label={translateWebExtraSource(previewLocale, "Fit width")}
           onPress={() => {
             changeZoom(null);
             scroll.current?.scrollTo({ left: 0 });
@@ -392,8 +420,8 @@ export default function PdfViewer(props: {
             ref={find}
             size="compact"
             type="search"
-            aria-label="Find in PDF"
-            placeholder="Find in PDF"
+            aria-label={translateWebSource(previewLocale, "Find in PDF")}
+            placeholder={translateWebSource(previewLocale, "Find in PDF")}
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
@@ -406,11 +434,11 @@ export default function PdfViewer(props: {
           <>
             <span role="status">
               {finding
-                ? "Searching…"
+                ? translateWebSource(previewLocale, "Searching…")
                 : (findError ?? `${matches.length ? match + 1 : 0}/${matches.length}`)}
             </span>
             <FileSurfaceAction
-              label="Next matching page"
+              label={translateWebSource(previewLocale, "Next matching page")}
               disabled={!matches.length}
               onPress={() => {
                 const next = (match + 1) % matches.length;

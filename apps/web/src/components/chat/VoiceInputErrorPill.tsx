@@ -1,3 +1,4 @@
+import { useChatUpdateTranslation } from "./v018Messages";
 import { MICROPHONE_PERMISSION_ERROR } from "@t3tools/client-runtime/voice-input";
 import { useNavigate } from "@tanstack/react-router";
 import { RotateCcwIcon, SettingsIcon, XIcon } from "lucide-react";
@@ -38,6 +39,7 @@ export function VoiceInputErrorPill(props: {
   onRetry(): void;
   onDismiss(): void;
 }) {
+  const tx = useChatUpdateTranslation();
   const navigate = useNavigate();
   const openSettings = props.errorAction === "settings";
   const actionLabel = openSettings
@@ -55,7 +57,7 @@ export function VoiceInputErrorPill(props: {
               type="button"
               size="icon-sm-pill"
               variant="ghost"
-              aria-label="Dismiss voice input error"
+              aria-label={tx("Dismiss voice input error")}
               onPointerDown={(event) => event.preventDefault()}
               onClick={props.onDismiss}
             >
@@ -64,7 +66,7 @@ export function VoiceInputErrorPill(props: {
           }
         />
         <TooltipPopup side="top">
-          Dismiss voice input error
+          {tx("Dismiss voice input error")}
           {props.cancelShortcutLabel ? ` (${props.cancelShortcutLabel})` : ""}
         </TooltipPopup>
       </Tooltip>
@@ -79,7 +81,7 @@ export function VoiceInputErrorPill(props: {
             />
           }
         >
-          {voiceErrorLabel(props.error)}
+          {tx(voiceErrorLabel(props.error))}
         </TooltipTrigger>
         <TooltipPopup side="top">{props.error ?? "Voice input failed"}</TooltipPopup>
       </Tooltip>
@@ -91,7 +93,7 @@ export function VoiceInputErrorPill(props: {
                 type="button"
                 size="icon-sm-pill"
                 variant="ghost"
-                aria-label={actionLabel}
+                aria-label={tx(actionLabel)}
                 disabled={props.disabled}
                 onPointerDown={(event) => event.preventDefault()}
                 onClick={() => {
@@ -107,7 +109,7 @@ export function VoiceInputErrorPill(props: {
               </Button>
             }
           />
-          <TooltipPopup side="top">{actionLabel}</TooltipPopup>
+          <TooltipPopup side="top">{tx(actionLabel)}</TooltipPopup>
         </Tooltip>
       ) : null}
     </VoiceInputPill>

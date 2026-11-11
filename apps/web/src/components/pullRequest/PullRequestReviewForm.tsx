@@ -1,9 +1,12 @@
+import { chineseText } from "@t3tools/shared/chineseUi";
+import { translateWebSource } from "~/i18n/messages";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { capitalizeTerm } from "@t3tools/client-runtime/source-control-clients";
 import type { EnvironmentId, PullRequestRef, PullRequestReviewVerdict } from "@t3tools/contracts";
 import { CheckIcon, MessageSquareIcon, XCircleIcon } from "lucide-react";
 import { useEffect, useState, type ReactNode, type RefObject } from "react";
 
+import { useI18n } from "~/i18n/WebI18nContext";
 import { TextFieldSpeechControls, useTextFieldSpeech } from "~/speech/useTextFieldSpeech";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
@@ -76,6 +79,16 @@ export function PullRequestReviewForm({
   onPendingChange: (pending: boolean) => void;
   onSubmitted: () => void;
 }) {
+  const { locale: uiLocale } = useI18n();
+  const { t } = useI18n();
+  const verdictLabel = (value: PullRequestReviewVerdict) =>
+    t(
+      value === "approve"
+        ? "pullRequests.review.approve"
+        : value === "request-changes"
+          ? "pullRequests.review.requestChanges"
+          : "pullRequests.comments.comment",
+    );
   const [requestedVerdict, setRequestedVerdict] = useState<PullRequestReviewVerdict>("comment");
   const comments = usePendingReviewComments(reference);
   const reviewKey = pullRequestReviewKey(reference);
@@ -123,10 +136,10 @@ export function PullRequestReviewForm({
     if (result._tag === "Failure") {
       toastManager.add({
         type: "error",
-        title: "The review could not be submitted",
+        title: t("pullRequests.review.submitFailed"),
         description: readableFailure(
           squashAtomCommandFailure(result),
-          "The host refused the review. Your draft is still here to try again.",
+          t("pullRequests.review.refusedDraftKept"),
         ),
       });
       return;
@@ -137,7 +150,17 @@ export function PullRequestReviewForm({
       submittedComments.map((comment) => comment.id),
     );
     clearSummary(reviewKey, submittedBody);
-    toastManager.add({ type: "success", title: verdict.sent(term) });
+    toastManager.add({
+      type: "success",
+      title:
+        uiLocale !== "en"
+          ? verdict.value === "approve"
+            ? chineseText(uiLocale, "变更请求已批准")
+            : verdict.value === "request-changes"
+              ? chineseText(uiLocale, "已请求修改")
+              : chineseText(uiLocale, "评审已提交")
+          : verdict.sent(term),
+    });
     onSubmitted();
   };
 
@@ -161,8 +184,8 @@ export function PullRequestReviewForm({
         rows={3}
         readOnly={speech.freezesEditor}
         value={body}
-        placeholder={placeholder}
-        aria-label="Review summary"
+        placeholder={translateWebSource(uiLocale, placeholder)}
+        aria-label={t("pullRequests.review.summaryAria")}
         onValueChange={(next) => setSummary(reviewKey, next)}
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing || event.keyCode === 229 || event.repeat) return;
@@ -188,10 +211,14 @@ export function PullRequestReviewForm({
               if (value !== null) setRequestedVerdict(value);
             }}
           >
-            <SelectTrigger size="xs" className="w-auto min-w-0" aria-label="Review verdict">
+            <SelectTrigger
+              size="xs"
+              className="w-auto min-w-0"
+              aria-label={translateWebSource(uiLocale, "Review verdict")}
+            >
               <span className="flex items-center gap-1.5">
                 {selectedVerdict?.icon}
-                {selectedVerdict?.label}
+                {selectedVerdict ? verdictLabel(selectedVerdict.value) : null}
               </span>
             </SelectTrigger>
             <SelectPopup side="top" alignItemWithTrigger={false}>
@@ -199,7 +226,7 @@ export function PullRequestReviewForm({
                 <SelectItem key={verdict.value} value={verdict.value}>
                   <span className="flex items-center gap-1.5">
                     {verdict.icon}
-                    {verdict.label}
+                    {verdictLabel(verdict.value)}
                   </span>
                 </SelectItem>
               ))}
@@ -219,7 +246,9 @@ export function PullRequestReviewForm({
               speech.submitAfterDictation((text) => void submit(selectedVerdict, text));
           }}
         >
-          {pending ? "Submitting..." : "Submit review"}
+          {pending
+            ? t("composer.action.submitting")
+            : translateWebSource(uiLocale, "Submit review")}
         </Button>
       </div>
     </>

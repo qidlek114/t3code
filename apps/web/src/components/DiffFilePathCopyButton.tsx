@@ -1,5 +1,6 @@
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useRef } from "react";
+import { useI18n } from "../i18n/WebI18nContext";
 import { useCopyToClipboard } from "../hooks/useCopyToClipboard";
 import {
   ANCHORED_COPY_TOAST_TIMEOUT_MS,
@@ -10,6 +11,7 @@ import { Button } from "./ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 
 export function DiffFilePathCopyButton({ filePath }: { filePath: string }) {
+  const { t } = useI18n();
   const ref = useRef<HTMLButtonElement>(null);
   const { copyToClipboard, isCopied } = useCopyToClipboard<void>({
     onCopy: () => showAnchoredCopySuccessToast(ref),
@@ -25,7 +27,7 @@ export function DiffFilePathCopyButton({ filePath }: { filePath: string }) {
             ref={ref}
             size="icon-micro"
             variant="ghost-muted"
-            aria-label="Copy file path"
+            aria-label={t("files.copyPath")}
             onClick={() => copyToClipboard(filePath, undefined)}
           />
         }
@@ -33,7 +35,7 @@ export function DiffFilePathCopyButton({ filePath }: { filePath: string }) {
         {isCopied ? <CheckIcon className="size-3 text-success" /> : <CopyIcon className="size-3" />}
       </TooltipTrigger>
       <TooltipPopup>
-        <p>{isCopied ? "Copied" : "Copy path"}</p>
+        <p>{isCopied ? t("common.copied") : t("files.copyPath")}</p>
       </TooltipPopup>
     </Tooltip>
   );

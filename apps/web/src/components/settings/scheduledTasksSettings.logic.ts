@@ -184,11 +184,15 @@ export function scheduleDraftErrors(draft: DraftState) {
   return errors;
 }
 
-export function webhookDeliveryLabel(delivery: {
-  readonly outcome: string;
-  readonly pendingWindow?: boolean | undefined;
-}) {
-  if (delivery.outcome === "accepted") return delivery.pendingWindow ? "Opened window" : "Ran";
+export function webhookDeliveryLabel(
+  delivery: {
+    readonly outcome: string;
+    readonly pendingWindow?: boolean | undefined;
+  },
+  translate: (source: string) => string = (source) => source,
+) {
+  if (delivery.outcome === "accepted")
+    return translate(delivery.pendingWindow ? "Opened window" : "Ran");
   const labels: Record<string, string> = {
     dispatch_failed: "Run failed",
     duplicate: "Duplicate",
@@ -199,7 +203,8 @@ export function webhookDeliveryLabel(delivery: {
     rate_limited: "Rate limited",
     expired: "Too old",
   };
-  return labels[delivery.outcome] ?? delivery.outcome.replaceAll("_", " ");
+  const label = labels[delivery.outcome];
+  return label === undefined ? delivery.outcome.replaceAll("_", " ") : translate(label);
 }
 
 export function scheduleFromDraft(draft: DraftState): ScheduledTaskUpsertSchedule | null {

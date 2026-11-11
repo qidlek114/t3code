@@ -12,6 +12,9 @@ import { act, render } from "../../test/render";
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn<(target: unknown, handlers: PreviewStreamEvents) => unknown>(),
   sent: [] as PreviewStreamInput[],
+  locale: "en" as "en" | "zh-CN",
+  addToast: vi.fn(),
+  uploadFiles: vi.fn(),
   access: { url: "ws://preview.test", token: "test" },
   painted: null as (() => void) | null,
 }));
@@ -19,6 +22,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock(import("@t3tools/client-runtime/preview/server-browser-stream"), async (original) => ({
   ...(await original()),
   createPreviewStreamClient: mocks.createClient as never,
+  uploadPreviewStreamFiles: mocks.uploadFiles,
   createPreviewFramePainter: (_canvas, onPainted) => {
     mocks.painted = onPainted ?? null;
     return { paint: () => undefined, stop: () => undefined };
@@ -30,9 +34,17 @@ vi.mock(import("~/state/previewStream"), async (original) => ({
   usePreviewStreamAccess: () => mocks.access as never,
 }));
 
+vi.mock("~/i18n/readWebI18n", () => ({ readWebI18n: () => ({ locale: mocks.locale }) }));
+vi.mock("~/components/ui/toast", () => ({
+  toastManager: { add: mocks.addToast, close: vi.fn() },
+}));
+
 import { ServerBrowserSurface } from "./ServerBrowserSurface";
 
 function setup() {
+  mocks.locale = "en";
+  mocks.addToast.mockReset();
+  mocks.uploadFiles.mockReset();
   mocks.sent.length = 0;
   mocks.painted = null;
   mocks.createClient.mockReset().mockImplementation(() => ({
@@ -220,3 +232,73 @@ describe("ServerBrowserSurface history", () => {
     expect(mouseInputs()).not.toEqual([]);
   });
 });
+
+it.each([
+  ["clipboard", "en", "zh-CN"],
+  ["clipboard", "zh-CN", "en"],
+  ["file chooser", "en", "zh-CN"],
+  ["file chooser", "zh-CN", "en"],
+] as const)(
+  "%s failure uses the current language after switching from %s to %s",
+  async (operation, initialLocale, nextLocale) => {
+    setup();
+    mocks.locale = initialLocale;
+    const { screen, input } = await renderSurface("you");
+    await using _screen = screen;
+    let reject!: (error: Error) => void;
+    const pending = new Promise<void>((_resolve, fail) => {
+      reject = fail;
+    });
+    using _write = vi.spyOn(navigator.clipboard, "writeText").mockReturnValue(pending);
+    mocks.uploadFiles.mockReturnValue(pending);
+    const handlers = mocks.createClient.mock.calls.at(-1)![1];
+    if (operation === "clipboard") {
+      await act(() => handlers.onClipboard?.("copied page text"));
+      expect(_write).toHaveBeenCalledExactlyOnceWith("copied page text");
+    } else {
+      await act(() =>
+        handlers.onFileChooser?.({
+          multiple: false,
+          accept: "",
+          uploadUrl: "https://preview.test/upload",
+          credentials: false,
+        }),
+      );
+      const fileInput = input
+        .closest("[data-server-browser-surface]")!
+        .querySelector('input[type="file"]') as HTMLInputElement;
+      const transfer = new DataTransfer();
+      const file = new File(["contents"], "example.txt");
+      transfer.items.add(file);
+      await act(() => {
+        fileInput.files = transfer.files;
+        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      expect(mocks.uploadFiles).toHaveBeenCalledWith(expect.anything(), [file]);
+    }
+    expect(mocks.addToast).not.toHaveBeenCalled();
+    mocks.locale = nextLocale;
+    await act(async () => {
+      reject(new Error("REMOTE opaque failure"));
+      await pending.catch(() => undefined);
+    });
+    expect(mocks.addToast).toHaveBeenCalledExactlyOnceWith(
+      operation === "clipboard"
+        ? expect.objectContaining({
+            type: "info",
+            title: nextLocale === "zh-CN" ? "网页已复制文本" : "The page copied text",
+            actionProps: expect.objectContaining({
+              children: nextLocale === "zh-CN" ? "复制" : "Copy",
+            }),
+          })
+        : expect.objectContaining({
+            type: "error",
+            title:
+              nextLocale === "zh-CN"
+                ? "无法将文件发送到网页"
+                : "Could not send the files to the page",
+            description: "REMOTE opaque failure",
+          }),
+    );
+  },
+);

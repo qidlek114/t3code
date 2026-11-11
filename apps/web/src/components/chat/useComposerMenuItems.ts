@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import {
   matchComposerEnvironmentItems,
   matchComposerThreadItems,
@@ -102,6 +104,9 @@ export function useComposerMenuItems({
     readonly modelOptionsByInstance: ReadonlyMap<ProviderInstanceId, ReadonlyArray<ModelEsque>>;
   };
 }) {
+  const { locale: incrementalLocale } = useI18n();
+  const { t, locale: releaseLocale } = useI18n();
+
   // Thread mentions rank by recency as of when the composer mounted.
   const [now] = useState(() => Date.now());
   const composerTriggerKind = composerTrigger?.kind ?? null;
@@ -236,7 +241,7 @@ export function useComposerMenuItems({
           type: "slash-command",
           command: "model",
           label: "/model",
-          description: "Switch response model for this thread",
+          description: t("composer.command.modelDescription"),
         },
         ...(sideChatAvailable
           ? ([
@@ -245,14 +250,17 @@ export function useComposerMenuItems({
                 type: "slash-command",
                 command: "side",
                 label: "/side",
-                description: sideChatDisabledReason ?? "Ask a side question in a new side chat",
+                description:
+                  sideChatDisabledReason ??
+                  translateWebSource(incrementalLocale, "Ask a side question in a new side chat"),
               },
               {
                 id: "slash:btw",
                 type: "slash-command",
                 command: "btw",
                 label: "/btw",
-                description: sideChatDisabledReason ?? "Same as /side",
+                description:
+                  sideChatDisabledReason ?? translateWebSource(incrementalLocale, "Same as /side"),
               },
             ] as const)
           : []),
@@ -317,7 +325,7 @@ export function useComposerMenuItems({
         description:
           skill.shortDescription ??
           skill.description ??
-          (skill.scope ? `${skill.scope} skill` : "Run provider skill"),
+          (skill.scope ? `${skill.scope} skill` : t("composer.command.runProviderSkill")),
       }));
     }
     if (
@@ -410,11 +418,11 @@ export function useComposerMenuItems({
       }
       return composerTrigger?.query
         ? `No pull request matches ${composerTrigger.query}.`
-        : "No pull requests found in this repository.";
+        : translateWebSource(releaseLocale, "No pull requests found in this repository.");
     }
     return composerTriggerKind === "path"
-      ? "No matching files or folders."
-      : "No matching command.";
+      ? t("composer.menu.noPaths")
+      : t("composer.menu.noCommands");
   })();
 
   return { items, isLoading, emptyState };

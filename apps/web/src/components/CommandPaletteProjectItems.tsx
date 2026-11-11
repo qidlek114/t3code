@@ -1,3 +1,5 @@
+import { LocalizedText } from "~/i18n/LocalizedText";
+import { useI18n } from "~/i18n/WebI18nContext";
 import type { EnvironmentId, EnvironmentMachineKind } from "@t3tools/contracts";
 
 import type { SidebarProjectSnapshot } from "../sidebarProjectGrouping";
@@ -105,12 +107,18 @@ function ProjectLocationDescription(props: {
   readonly workspaceRoot: string;
   readonly current?: boolean;
 }) {
-  const location = props.location ?? UNKNOWN_PROJECT_LOCATION;
+  const { t } = useI18n();
+  const location = props.location ?? {
+    ...UNKNOWN_PROJECT_LOCATION,
+    label: t("gitDialog.publish.remote"),
+  };
   return (
     <span className="flex min-w-0 items-center gap-1">
       {props.current ? (
         <>
-          <span className="shrink-0">Current</span>
+          <span className="shrink-0">
+            <LocalizedText source={"Current"} />
+          </span>
           <CommandPaletteMetaDot />
         </>
       ) : null}

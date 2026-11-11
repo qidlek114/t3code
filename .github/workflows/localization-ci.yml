@@ -1,0 +1,34 @@
+name: Localization checks
+
+on:
+  push:
+    branches: [localization]
+  pull_request:
+    branches: [localization]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.repository == 'qidlek114/t3code'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      VITEST_MAX_WORKERS: "1"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-ci-deps
+      - run: vp exec playwright install --with-deps chromium
+        working-directory: apps/web
+      - run: node apps/desktop/scripts/ensure-electron-runtime.mjs
+      - name: Check the complete localization delta
+        run: |
+          git fetch --no-tags https://github.com/pingdotgg/t3code.git main:refs/remotes/upstream/main
+          vp run check:changed upstream/main --concurrency 2
+      - name: Check build isolation against upstream drift
+        run: node .github/scripts/localization-build.cjs

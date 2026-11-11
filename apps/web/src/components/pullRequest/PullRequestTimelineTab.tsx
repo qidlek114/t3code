@@ -1,3 +1,7 @@
+import { useSourceTranslation } from "~/i18n/useSourceTranslation";
+import { LocalizedText } from "~/i18n/LocalizedText";
+import { chineseText } from "@t3tools/shared/chineseUi";
+import { translateWebSource } from "~/i18n/messages";
 import {
   parsePullRequestAnchor,
   pullRequestAnchorMatchesUrl,
@@ -32,6 +36,7 @@ import { cn } from "~/lib/utils";
 import { readLocalApi } from "~/localApi";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { RelativeTime } from "~/components/RelativeTime";
+import { useI18n } from "../../i18n/WebI18nContext";
 
 import { Button } from "../ui/button";
 import { PullRequestEditButton } from "./PullRequestEditButton";
@@ -180,8 +185,11 @@ function friendlyReviewState(value: string): string {
 }
 
 function ReviewStateBadge({ state }: { state: string }) {
+  const { locale } = useI18n();
   return (
-    <span className="text-3xs font-medium text-muted-foreground">{friendlyReviewState(state)}</span>
+    <span className="text-3xs font-medium text-muted-foreground">
+      {translateWebSource(locale, friendlyReviewState(state))}
+    </span>
   );
 }
 
@@ -192,6 +200,8 @@ function AddToChatButton({
   comment: PullRequestComment;
   reactions: ReactionSurface;
 }) {
+  const localizeUi = useSourceTranslation();
+
   const onAddToChat = reactions.onAddToChat;
   return onAddToChat === undefined ? null : (
     <Tooltip>
@@ -201,25 +211,28 @@ function AddToChatButton({
             size="icon-xs"
             variant="ghost-muted"
             className="-mt-1 shrink-0"
-            aria-label="Add to chat"
+            aria-label={localizeUi("Add to chat")}
             onClick={() => onAddToChat(comment)}
           />
         }
       >
         <MessageSquarePlusIcon className="size-3" />
       </TooltipTrigger>
-      <TooltipPopup>Add to chat</TooltipPopup>
+      <TooltipPopup>
+        <LocalizedText source={"Add to chat"} />
+      </TooltipPopup>
     </Tooltip>
   );
 }
 
 function OpenOnHostButton({ url, onOpen }: { url: string | null; onOpen: (url: string) => void }) {
+  const { t } = useI18n();
   return url === null ? null : (
     <Button
       size="icon-xs"
       variant="ghost-muted"
       className="-mr-1 shrink-0"
-      aria-label="Open activity on host"
+      aria-label={t("pullRequests.timeline.openOnHost")}
       onClick={() => onOpen(url)}
     >
       <ExternalLinkIcon className="size-3" />
@@ -245,6 +258,8 @@ function ConversationCard({
   /** A reply goes with its conversation, from the card that heads it. */
   reply?: boolean;
 }) {
+  const { t } = useI18n();
+  const { locale: uiLocale } = useI18n();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const updateComment = useAtomCommand(pullRequestEnvironment.updateComment, {
@@ -260,7 +275,7 @@ function ConversationCard({
     });
     setSaving(false);
     if (result._tag === "Failure") {
-      toastManager.add({ type: "error", title: "Could not save the comment" });
+      toastManager.add({ type: "error", title: t("pullRequests.comments.saveFailed") });
       return;
     }
     setEditing(false);
@@ -283,7 +298,9 @@ function ConversationCard({
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs">
               <ActorName actor={event.actor} />
-              <span className="text-muted-foreground">{event.title}</span>
+              <span className="text-muted-foreground">
+                {translateWebSource(uiLocale, event.title)}
+              </span>
               {event.reviewState ? <ReviewStateBadge state={event.reviewState} /> : null}
             </div>
             <PullRequestMetaLine className="mt-1 flex-wrap text-2xs text-muted-foreground">
@@ -299,7 +316,10 @@ function ConversationCard({
             </PullRequestMetaLine>
           </div>
           {editable !== null && !editing ? (
-            <PullRequestEditButton aria-label="Edit comment" onClick={() => setEditing(true)} />
+            <PullRequestEditButton
+              aria-label={t("pullRequests.comments.edit")}
+              onClick={() => setEditing(true)}
+            />
           ) : null}
           {event.body && event.comment && !reply ? (
             <AddToChatButton comment={event.comment} reactions={reactions} />
@@ -326,7 +346,7 @@ function ConversationCard({
             environmentId={reactions.environmentId}
             completionScope={reactions.completionScope}
             threadRef={reactions.threadRef}
-            label="Edit comment"
+            label={t("pullRequests.comments.edit")}
             saving={saving}
             onSave={(body) => void save(body)}
             onCancel={() => setEditing(false)}
@@ -371,6 +391,7 @@ function ConversationGroup({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(
     () =>
       revealAnchor != null &&
@@ -398,11 +419,11 @@ function ConversationGroup({
           >
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-semibold">
-                {events.length.toLocaleString()} {events.length === 1 ? "comment" : "comments"}
+                {t("pullRequests.comments.countMany", { count: events.length.toLocaleString() })}
               </span>
               <span className="block truncate text-3xs text-muted-foreground">
-                {actors.length.toLocaleString()} {actors.length === 1 ? "author" : "authors"} ·{" "}
-                <RelativeTime timestamp={first.at} />
+                {t("pullRequests.timeline.authorCount", { count: actors.length.toLocaleString() })}{" "}
+                · <RelativeTime timestamp={first.at} />
               </span>
             </span>
             <ChevronDownIcon
@@ -455,6 +476,8 @@ function ReviewThreadEvent({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
+  const { t } = useI18n();
+  const { locale: uiLocale } = useI18n();
   const dismissed = pullRequestReviewOutcome(event.reviewState) === "dismissed";
   const [expanded, setExpanded] = useState(
     () =>
@@ -482,7 +505,7 @@ function ReviewThreadEvent({
           onClick={() => setExpanded((current) => !current)}
         >
           {thread.path === null ? (
-            <span className="min-w-0 truncate">Overview</span>
+            <span className="min-w-0 truncate">{translateWebSource(uiLocale, "Overview")}</span>
           ) : (
             <>
               <FileCode2Icon aria-hidden className="size-3 shrink-0" />
@@ -494,18 +517,30 @@ function ReviewThreadEvent({
           {thread.isResolved ? (
             <span className="inline-flex shrink-0 items-center gap-1 font-medium text-success-foreground">
               <CircleCheckIcon aria-hidden className="size-3" />
-              Resolved
+              {t("pullRequests.comments.resolved")}
             </span>
           ) : null}
-          {dismissed ? <span className="shrink-0 font-medium">Review dismissed</span> : null}
-          {thread.isOutdated ? <span className="shrink-0 font-medium">Outdated</span> : null}
+          {dismissed ? (
+            <span className="shrink-0 font-medium">
+              {translateWebSource(uiLocale, "Review dismissed")}
+            </span>
+          ) : null}
+          {thread.isOutdated ? (
+            <span className="shrink-0 font-medium">{translateWebSource(uiLocale, "Outdated")}</span>
+          ) : null}
           {expanded ? null : (
             <span className="shrink-0">
               · {event.actor?.login ?? "ghost"}
               {replyCount > 0 ? (
                 <>
                   {" "}
-                  · {replyCount.toLocaleString()} {replyCount === 1 ? "reply" : "replies"}
+                  ·{" "}
+                  {t(
+                    replyCount === 1
+                      ? "pullRequests.comments.replyOne"
+                      : "pullRequests.comments.replyMany",
+                    { count: replyCount.toLocaleString() },
+                  )}
                 </>
               ) : null}
             </span>
@@ -572,11 +607,12 @@ function CommitEvent({
   event: PullRequestTimelineEvent;
   onOpen: (oid: string) => void;
 }) {
+  const { t } = useI18n();
   return (
     <button
       type="button"
       className="group relative mb-5 block w-full cursor-pointer rounded-sm pl-12 text-left outline-none [contain-intrinsic-block-size:48px] [content-visibility:auto] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-      aria-label={`View commit ${event.id}`}
+      aria-label={t("pullRequests.timeline.viewCommit", { commit: event.id })}
       onClick={() => onOpen(event.id)}
     >
       <ActorTimelineMarker
@@ -586,7 +622,7 @@ function CommitEvent({
       <div className="flex min-w-0 items-center gap-2.5 py-1.5">
         <div className="min-w-0 flex-1">
           <div className="truncate text-xs font-semibold text-foreground transition-colors group-hover:text-primary">
-            {event.body ?? "Untitled commit"}
+            {event.body ?? t("pullRequests.timeline.untitledCommit")}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-3xs text-muted-foreground">
             <code className="font-mono">{event.id.slice(0, 7)}</code>
@@ -608,21 +644,22 @@ function CommitEvent({
 }
 
 function LifecycleEvent({ event, term }: { event: PullRequestTimelineEvent; term: string }) {
+  const { locale: uiLocale } = useI18n();
   const title = capitalizeTerm(term);
   const presentation =
     event.kind === "opened"
       ? {
           icon: <PullRequestGlyph.pullRequest className="size-3.5" />,
-          label: `${title} opened`,
+          label: uiLocale !== "en" ? chineseText(uiLocale, "变更请求已创建") : `${title} opened`,
         }
       : event.kind === "merged"
         ? {
             icon: <PullRequestGlyph.merged className="size-3.5" />,
-            label: `${title} merged`,
+            label: uiLocale !== "en" ? chineseText(uiLocale, "变更请求已合并") : `${title} merged`,
           }
         : {
             icon: <PullRequestGlyph.closed className="size-3.5" />,
-            label: `${title} closed`,
+            label: uiLocale !== "en" ? chineseText(uiLocale, "变更请求已关闭") : `${title} closed`,
           };
 
   return (
@@ -656,6 +693,7 @@ function ReviewVerdictEvent({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
+  const { t } = useI18n();
   return (
     <div className="group relative mb-5 pl-12 [contain-intrinsic-block-size:48px] [content-visibility:auto]">
       <ActorTimelineMarker
@@ -680,10 +718,12 @@ function ReviewVerdictEvent({
                   />
                 }
               >
-                {pullRequestReviewOutcomeLabel(outcome)}
-                {stale ? <span className="sr-only">, before the latest commits</span> : null}
+                {pullRequestReviewOutcomeLabel(outcome, t)}
+                {stale ? (
+                  <span className="sr-only">{t("pullRequests.review.beforeLatest")}</span>
+                ) : null}
               </TooltipTrigger>
-              <TooltipPopup>{pullRequestReviewOutcomeStaleLabel(outcome)}</TooltipPopup>
+              <TooltipPopup>{pullRequestReviewOutcomeStaleLabel(outcome, t)}</TooltipPopup>
             </Tooltip>
           </div>
           <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -755,6 +795,7 @@ export function PullRequestTimelineTab({
   onAddToChat?: (subject: PullRequestChatSubject) => void;
   onRefresh: () => void;
 }) {
+  const { t } = useI18n();
   const events = buildPullRequestTimeline(detail);
   const location = parsePullRequestAnchor(revealUrl);
   const revealAnchor = location?.kind === "timeline" ? location.anchor : null;
@@ -882,7 +923,7 @@ export function PullRequestTimelineTab({
       <div ref={scrollerRef} className="scrollbar-gutter-both h-full overflow-y-auto px-4 py-5">
         <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
           <PullRequestGlyph.pullRequest className="mb-2 size-5" />
-          <p className="text-xs">No activity yet.</p>
+          <p className="text-xs">{t("pullRequests.timeline.empty")}</p>
         </div>
       </div>
     );
@@ -906,7 +947,7 @@ export function PullRequestTimelineTab({
       ListHeaderComponent={
         anchor !== null && targetIndex < 0 && revealUrl === undefined ? (
           <p role="status" className="py-4 text-xs text-muted-foreground">
-            The linked item is not in the loaded activity.
+            <LocalizedText source={"The linked item is not in the loaded activity."} />
           </p>
         ) : (
           <div className="h-5" />

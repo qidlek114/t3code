@@ -1,3 +1,6 @@
+import { useChatUpdateTranslation } from "./v018Messages";
+import { translateChatUpdate } from "./v018Messages";
+import { readWebI18n } from "~/i18n/readWebI18n";
 import {
   type OrchestrationV2LimitRecovery,
   type OrchestrationV2LimitRecoveryUpdate,
@@ -35,6 +38,8 @@ type RecoveryProps = {
 };
 
 export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBannerStackItem {
+  const { locale } = readWebI18n();
+  const tx = (source: string) => translateChatUpdate(locale, source);
   const {
     runId,
     errorCode,
@@ -61,15 +66,15 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
       ? snoozedUntil
       : resetAt;
   const resetDescription = displayAt
-    ? `${resumes ? "Resumes" : "Resets"} ${formatUpcomingTimestamp(displayAt, timestampFormat)}`
-    : "Reset time unavailable; retry manually";
+    ? `${resumes ? tx("Resumes") : tx("Resets")} ${formatUpcomingTimestamp(displayAt, timestampFormat)}`
+    : tx("Reset time unavailable; retry manually");
   if (!chatGptLimit) {
     return {
       id: `usage-limit-recovery:${runId}`,
       variant: "warning",
       group: "environment",
       icon: <GaugeIcon />,
-      title: "Usage limit reached",
+      title: tx("Usage limit reached"),
       description: resetDescription,
       actions: recoveryActions,
     };
@@ -88,8 +93,8 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
       <>
         {recoveryActions}
         {workspaceLimit ? (
-          <Button size="xs" variant="ghost" onClick={copyAdminRequest}>
-            Copy request for admin
+          <Button size="xs" variant="ghost" onClick={() => copyAdminRequest()}>
+            {tx("Copy request for admin")}
           </Button>
         ) : (
           <ChatGptUsageButton size="xs" variant="ghost" />
@@ -100,6 +105,7 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
 }
 
 function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: RecoveryProps) {
+  const tx = useChatUpdateTranslation();
   const [pending, setPending] = useState(false);
 
   const scheduled =
@@ -114,8 +120,8 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
     if (action === "snooze" && !snoozed && Date.parse(resetAt) <= Date.now()) {
       toastManager.add({
         type: "error",
-        title: "Could not snooze thread",
-        description: "The reset time has passed. Retry the thread manually.",
+        title: tx("Could not snooze thread"),
+        description: tx("The reset time has passed. Retry the thread manually."),
       });
       // The deadline timer can lag after a throttled tab or sleep; disable now.
       deadlineStore(Date.parse(resetAt)).refresh();
@@ -131,8 +137,9 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
     } catch (cause) {
       toastManager.add({
         type: "error",
-        title: action === "resume" ? "Could not change auto-resume" : "Could not snooze thread",
-        description: cause instanceof Error ? cause.message : "An error occurred.",
+        title:
+          action === "resume" ? tx("Could not change auto-resume") : tx("Could not snooze thread"),
+        description: cause instanceof Error ? cause.message : tx("An error occurred."),
       });
     }
     setPending(false);
@@ -141,14 +148,14 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
       <InlineButton touchTarget="padded" disabled={pending} onClick={() => void toggle("resume")}>
-        {pending ? "Saving..." : scheduled ? "Cancel auto-resume" : "Resume at reset"}
+        {pending ? tx("Saving...") : scheduled ? tx("Cancel auto-resume") : tx("Resume at reset")}
       </InlineButton>
       <InlineButton
         touchTarget="padded"
         disabled={pending || (!snoozed && resetPassed)}
         onClick={() => void toggle("snooze")}
       >
-        {pending ? "Saving..." : snoozed ? "Wake now" : "Snooze until reset"}
+        {pending ? tx("Saving...") : snoozed ? tx("Wake now") : tx("Snooze until reset")}
       </InlineButton>
     </span>
   );

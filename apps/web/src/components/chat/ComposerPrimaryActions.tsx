@@ -1,3 +1,5 @@
+import { useI18n, type WebTranslate } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import {
   memo,
   useEffect,
@@ -66,22 +68,27 @@ interface ComposerPrimaryActionsProps {
   onToggleKeepFullHistory?: () => void;
 }
 
-const formatPendingPrimaryActionLabel = (input: {
-  compact: boolean;
-  isLastQuestion: boolean;
-  isResponding: boolean;
-  questionIndex: number;
-}) => {
+const formatPendingPrimaryActionLabel = (
+  input: {
+    compact: boolean;
+    isLastQuestion: boolean;
+    isResponding: boolean;
+    questionIndex: number;
+  },
+  t: WebTranslate,
+) => {
   if (input.isResponding) {
-    return "Submitting...";
+    return t("composer.action.submitting");
   }
   if (input.compact) {
-    return input.isLastQuestion ? "Submit" : "Next";
+    return input.isLastQuestion ? t("composer.action.submit") : t("composer.action.next");
   }
   if (!input.isLastQuestion) {
-    return "Next question";
+    return t("composer.action.nextQuestion");
   }
-  return input.questionIndex > 0 ? "Submit answers" : "Submit answer";
+  return input.questionIndex > 0
+    ? t("composer.action.submitAnswers")
+    : t("composer.action.submitAnswer");
 };
 
 const STOP_PENDING_MAX_MS = 10_000;
@@ -121,6 +128,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   keepFullHistory = false,
   onToggleKeepFullHistory,
 }: ComposerPrimaryActionsProps) {
+  const { locale: uiLocale, t } = useI18n();
   const [stopPhase, setStopPhase] = useState<"pending" | "timedOut" | "landed" | null>(null);
   const [stopRunId, setStopRunId] = useState(runId);
   if (runId !== null && stopRunId !== runId) {
@@ -175,7 +183,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
               setStopPhase("pending");
               onInterrupt();
             }}
-            aria-label={stopLabel}
+            aria-label={translateWebSource(uiLocale, stopLabel)}
           />
         }
       >
@@ -184,7 +192,10 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
         </svg>
       </TooltipTrigger>
       <TooltipPopup>
-        {stopPhase === "pending" ? "Stopping…" : stopPhase === "landed" ? "Stopped" : "Interrupt"}
+        {translateWebSource(
+          uiLocale,
+          stopPhase === "pending" ? "Stopping…" : stopPhase === "landed" ? "Stopped" : "Interrupt",
+        )}
       </TooltipPopup>
     </Tooltip>
   );
@@ -208,7 +219,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
               {...pointerFocusProps}
               onClick={onPreviousPendingQuestion}
               disabled={pendingAction.isResponding}
-              aria-label="Previous question"
+              aria-label={t("composer.action.previousQuestion")}
             >
               <ChevronLeftIcon className="size-3.5" />
             </Button>
@@ -220,7 +231,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
               onClick={onPreviousPendingQuestion}
               disabled={pendingAction.isResponding}
             >
-              Previous
+              {t("composer.action.previous")}
             </Button>
           )
         ) : null}
@@ -240,12 +251,15 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
                 : !pendingAction.canAdvance))
           }
         >
-          {formatPendingPrimaryActionLabel({
-            compact,
-            isLastQuestion: pendingAction.isLastQuestion,
-            isResponding: pendingAction.isResponding,
-            questionIndex: pendingAction.questionIndex,
-          })}
+          {formatPendingPrimaryActionLabel(
+            {
+              compact,
+              isLastQuestion: pendingAction.isLastQuestion,
+              isResponding: pendingAction.isResponding,
+              questionIndex: pendingAction.questionIndex,
+            },
+            t,
+          )}
         </button>
         {canInterrupt || stopPhase !== null ? renderStopGenerationButton(true) : null}
       </div>
@@ -274,25 +288,25 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   const compactsBeforeSend = compactTokens !== null && !keepFullHistory;
 
   const submitLabel = showResume
-    ? "Resume thread"
+    ? translateWebSource(uiLocale, "Resume thread")
     : isEditingQueuedMessage
-      ? "Update queued message"
+      ? translateWebSource(uiLocale, "Update queued message")
       : compactsBeforeSend
-        ? "Compact and send"
+        ? translateWebSource(uiLocale, "Compact and send")
         : isQueuing
-          ? "Queue message"
+          ? translateWebSource(uiLocale, "Queue message")
           : isRunning
-            ? "Steer message"
-            : "Submit message";
+            ? translateWebSource(uiLocale, "Steer message")
+            : translateWebSource(uiLocale, "Submit message");
   const submitStatus = isEnvironmentUnavailable
-    ? "Environment disconnected"
+    ? t("composer.state.environmentDisconnected")
     : (sendDisabledReason ??
       (isPreparingWorktree
-        ? "Preparing worktree"
+        ? t("composer.state.preparingWorktree")
         : isSendBusy
           ? isEditingQueuedMessage
-            ? "Updating queued message"
-            : "Submitting message"
+            ? translateWebSource(uiLocale, "Updating queued message")
+            : translateWebSource(uiLocale, "Submitting message")
           : null));
   const submitTooltip =
     submitStatus ??
@@ -383,7 +397,9 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
         >
           <Minimize2Icon aria-hidden="true" />
           <span className="@max-[480px]/composer-surface:hidden">
-            {keepFullHistory ? "Keep" : "Compact"}
+            {keepFullHistory
+              ? translateWebSource(uiLocale, "Keep")
+              : t("composer.compaction.compact")}
           </span>
           <span className="text-muted-foreground">{compactTokens}</span>
         </TooltipTrigger>

@@ -1,3 +1,5 @@
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
 import {
   getClientSettings,
   updateClientSettings,
@@ -14,11 +16,12 @@ import {
 
 /** Menu body that shows and hides thread details items. The card's context menu and Settings share it. */
 export function ThreadDetailsItemsMenuItems() {
+  const { locale } = useI18n();
   const visibility = useClientSettings(resolveThreadDetailsVisibility);
   return (
     <>
       <MenuGroup>
-        <MenuGroupLabel>Show in thread details</MenuGroupLabel>
+        <MenuGroupLabel>{translateWebSource(locale, "Show in thread details")}</MenuGroupLabel>
         {THREAD_DETAILS_ITEMS.map((item) => (
           <MenuCheckboxItem
             key={item.id}
@@ -29,7 +32,7 @@ export function ThreadDetailsItemsMenuItems() {
               })
             }
           >
-            {item.label}
+            {translateWebSource(locale, item.label)}
           </MenuCheckboxItem>
         ))}
       </MenuGroup>
@@ -38,7 +41,7 @@ export function ThreadDetailsItemsMenuItems() {
         disabled={isDefaultThreadDetailsVisibility(visibility)}
         onClick={() => updateClientSettings(RESET_THREAD_DETAILS_ITEMS)}
       >
-        Reset to default
+        {translateWebSource(locale, "Reset to default")}
       </MenuItem>
     </>
   );

@@ -1,3 +1,7 @@
+import { translateChatSource } from "~/i18n/chatSourceMessages";
+import { useI18n } from "~/i18n/WebI18nContext";
+import { translateWebSource } from "~/i18n/messages";
+
 import type { ThreadStructure } from "@t3tools/client-runtime/state/shell";
 import {
   AuthOrchestrationOperateScope,
@@ -123,6 +127,8 @@ export function usePendingThreadRequests(input: {
   readonly composerRef: RefObject<ChatComposerHandle | null>;
   readonly setThreadError: (threadId: ThreadId, error: string | null) => void;
 }) {
+  const { locale } = useI18n();
+  const tx = (source: string) => translateWebSource(locale, source);
   const {
     environmentId,
     activeThreadId,
@@ -288,7 +294,7 @@ export function usePendingThreadRequests(input: {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThreadId,
-        error instanceof Error ? error.message : "Failed to submit approval decision.",
+        error instanceof Error ? error.message : tx("Failed to submit approval decision."),
       );
     }
     setRespondingRequestIds((existing) => existing.filter((id) => id !== requestId));
@@ -327,7 +333,7 @@ export function usePendingThreadRequests(input: {
       if (!uploaded) {
         setThreadError(
           activeThreadId,
-          "Wait for attachments to finish uploading, or remove failed uploads.",
+          tx("Wait for attachments to finish uploading, or remove failed uploads."),
         );
         return;
       }
@@ -353,7 +359,7 @@ export function usePendingThreadRequests(input: {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThreadId,
-        error instanceof Error ? error.message : "Failed to submit user input.",
+        error instanceof Error ? error.message : tx("Failed to submit user input."),
       );
     }
     userInputResponsesInFlight.current.delete(responseKey);
@@ -375,7 +381,7 @@ export function usePendingThreadRequests(input: {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThreadId,
-        error instanceof Error ? error.message : "Failed to dismiss the question.",
+        error instanceof Error ? error.message : tx("Failed to dismiss the question."),
       );
     }
     setRespondingUserInputRequestIds((existing) => existing.filter((id) => id !== requestId));
@@ -407,8 +413,11 @@ export function usePendingThreadRequests(input: {
       setComposerDraftPrompt(composerDraftTarget, nextPrompt);
       toastManager.add({
         type: "info",
-        title: "Your typed text was set aside",
-        description: "It will be back in the composer once the question is answered.",
+        title: translateChatSource(locale, "Your typed text was set aside"),
+        description: translateChatSource(
+          locale,
+          "It will be back in the composer once the question is answered.",
+        ),
         data: { threadRef: activeThreadId ? { environmentId, threadId: activeThreadId } : null },
       });
       if (activeThreadId) {

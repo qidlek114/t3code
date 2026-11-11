@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { translateWebMessage } from "../i18n/messages";
 
 import { buildThreadActionMenuItems, type ThreadActionMenuState } from "./threadActionMenu.logic";
 
@@ -26,6 +27,68 @@ const baseState: ThreadActionMenuState = {
 };
 
 describe("buildThreadActionMenuItems", () => {
+  it("localizes guest sharing without changing its capability gate", () => {
+    const translate = (
+      key: Parameters<typeof translateWebMessage>[1],
+      values?: Parameters<typeof translateWebMessage>[2],
+    ) => translateWebMessage("zh-CN", key, values);
+    expect(
+      buildThreadActionMenuItems(baseState, translate).some((item) => item.id === "share-guest"),
+    ).toBe(false);
+    const state = { ...baseState, canShareWithGuest: true };
+    expect(
+      buildThreadActionMenuItems(state, translate).find((item) => item.id === "share-guest")?.label,
+    ).toBe("与访客共享");
+    expect(buildThreadActionMenuItems(state).find((item) => item.id === "share-guest")?.label).toBe(
+      "Share with guest",
+    );
+  });
+
+  it("localizes snooze presets while preserving their formatted wake time", () => {
+    const items = buildThreadActionMenuItems(baseState, (key, values) =>
+      translateWebMessage("zh-CN", key, values),
+    );
+    const preset = items
+      .find((item) => item.id === "snooze")
+      ?.children?.find((item) => item.id === "snooze:hour");
+    expect(preset?.label).toBe("1 小时后");
+    expect(preset?.detail).toBe("3:00 PM");
+    const englishItems = buildThreadActionMenuItems(baseState);
+    expect(
+      englishItems
+        .find((item) => item.id === "snooze")
+        ?.children?.find((item) => item.id === "snooze:hour")?.label,
+    ).toBe("In 1 hour");
+  });
+
+  it.each([
+    ["after:25", "In 25 minutes", "25 分钟后"],
+    ["after:180", "In 3 hours", "3 小时后"],
+    ["at:today:18:00", "This evening", "今天晚上"],
+    ["at:next-tuesday:09:00", "Next Tuesday", "下个星期二"],
+    ["custom", "A custom label", "A custom label"],
+  ])("localizes current snooze preset %s without changing its wake time", (id, label, chinese) => {
+    const state = { ...baseState, snoozePresets: [{ ...baseState.snoozePresets[0]!, id, label }] };
+    const translated = buildThreadActionMenuItems(state, (key, values) =>
+      translateWebMessage("zh-CN", key, values),
+    );
+    expect(
+      translated
+        .find((item) => item.id === "snooze")
+        ?.children?.find((item) => item.id === `snooze:${id}`)?.label,
+    ).toBe(chinese);
+    expect(
+      translated
+        .find((item) => item.id === "snooze")
+        ?.children?.find((item) => item.id === `snooze:${id}`)?.detail,
+    ).toBe("3:00 PM");
+    expect(
+      buildThreadActionMenuItems(state)
+        .find((item) => item.id === "snooze")
+        ?.children?.find((item) => item.id === `snooze:${id}`)?.label,
+    ).toBe(label);
+  });
+
   it.each([false, true])(
     "disables both lifecycle directions without permission (reversed: %s)",
     (reversed) => {

@@ -1,3 +1,5 @@
+import { translateChatSource } from "~/i18n/chatSourceMessages";
+import { useI18n } from "~/i18n/WebI18nContext";
 import type { EnvironmentId } from "@t3tools/contracts";
 import {
   formatHostedThreadLink,
@@ -20,6 +22,7 @@ export function MarkdownThreadLink(props: {
   readonly link: ThreadLink;
   readonly label: string | null;
 }) {
+  const { locale } = useI18n();
   const candidates = threadLinkCandidates(props.link, props.environmentId);
   const writtenRef = candidates[0]!;
   const written = useThreadShell(writtenRef);
@@ -51,11 +54,15 @@ export function MarkdownThreadLink(props: {
   const remote = useThreadShell(remoteRef);
   const resolved = target ?? (remoteRef && remote ? { ref: remoteRef, metadata: remote } : null);
   if (missing && resolved === null) {
-    const unknown = unknownThreadLinkLabel(props.link, props.environmentId);
+    const unknown = translateChatSource(
+      locale,
+      unknownThreadLinkLabel(props.link, props.environmentId),
+    );
     return <UnresolvedChip label={props.label ?? unknown} tooltip={unknown} />;
   }
   const ref = resolved?.ref ?? writtenRef;
-  const title = resolved?.metadata.title.trim() || props.label || "Thread";
+  const title =
+    resolved?.metadata.title.trim() || props.label || translateChatSource(locale, "Thread");
   return (
     <ThreadContextChip
       record={{ ...ref, title }}

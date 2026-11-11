@@ -64,6 +64,12 @@ describe("searchSettings", () => {
     expect(searchSettings("sharing", ITEMS).map((item) => item.id)).toEqual(["network-access"]);
     expect(searchSettings("claude", ITEMS).map((item) => item.id)).toEqual(["providers"]);
     expect(searchSettings("long lines", ITEMS).map((item) => item.id)).toEqual(["word-wrap"]);
+    for (const query of ["Language", "语言", "中文", "简体中文", "locale"]) {
+      expect(searchSettings(query)[0]).toMatchObject({
+        id: "app-language",
+        to: "/settings/general",
+      });
+    }
     for (const query of ["fallback", "fallback agent", "fallback model"]) {
       expect(searchSettings(query)[0]).toMatchObject({
         id: "fallback-model",
@@ -120,6 +126,8 @@ describe("searchSettings", () => {
       isWslSettingsRowVisible: false,
       hasThreadAutoSettlement: false,
     });
+
+    expect(searchSettings("语言", available).map((item) => item.id)).toContain("app-language");
 
     const gatedIds = new Set<string>([
       "follow-change-request-templates",
@@ -227,6 +235,14 @@ describe("searchSettings", () => {
 });
 
 describe("settings search targets", () => {
+  it("keeps the client language setting available regardless of retained settings scope", () => {
+    const target = getSettingsSearchTargetScope("app-language")!;
+    expect(target.scope).toBe("client");
+    for (const scope of ["all", "environment", "project", "checkout", "unavailable"] as const) {
+      expect(isSettingsSearchScopeAvailable(target.scope, scope)).toBe(true);
+    }
+  });
+
   it("requires an environment for the resolved telemetry export destination", () => {
     const result = searchSettings("OpenTelemetry export").find(
       (item) => item.id === "telemetry-export",

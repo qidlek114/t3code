@@ -3,6 +3,7 @@ import { PinIcon, PinOffIcon } from "lucide-react";
 import type { KeyboardEvent } from "react";
 
 import { resolveShortcutCommand } from "../keybindings";
+import { useI18n } from "../i18n/WebI18nContext";
 
 import { cn } from "~/lib/utils";
 import { Button } from "./ui/button";
@@ -31,7 +32,10 @@ export function ProjectPinButton(props: {
   readonly onToggle: () => void;
   readonly shortcutLabel?: string | null;
 }) {
-  const action = `${props.pinned ? "Unpin" : "Pin"} ${props.name}`;
+  const { t } = useI18n();
+  const action = t(props.pinned ? "project.unpinAction" : "project.pinAction", {
+    name: props.name,
+  });
   return (
     <span
       className={cn(

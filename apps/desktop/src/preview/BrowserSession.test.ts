@@ -32,7 +32,9 @@ vi.mock("electron", () => ({
   },
 }));
 
+import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronDialog from "../electron/ElectronDialog.ts";
+import * as DesktopClientSettings from "../settings/DesktopClientSettings.ts";
 import * as BrowserSession from "./BrowserSession.ts";
 
 const { showMessageBox } = vi.hoisted(() => ({
@@ -48,7 +50,9 @@ const layerDialog = Layer.succeed(ElectronDialog.ElectronDialog, {
   showErrorBox: () => Effect.void,
 });
 const layer = BrowserSession.layer.pipe(
-  Layer.provide(Layer.merge(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer), layerDialog)),
+  Layer.provide(DesktopClientSettings.layerTest()),
+  Layer.provide(Layer.mock(ElectronApp.ElectronApp)({ systemLocale: Effect.succeed("en-US") })),
+  Layer.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer, layerDialog)),
 );
 
 describe("BrowserSession", () => {

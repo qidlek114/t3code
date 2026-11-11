@@ -48,6 +48,7 @@ import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import { SNAP_SHOT_EVENT_CHANNEL } from "../ipc/channels.ts";
 import * as DesktopServerExposure from "../backend/DesktopServerExposure.ts";
 import * as DesktopWindow from "./DesktopWindow.ts";
+import * as DesktopTray from "./DesktopTray.ts";
 import * as PreviewManager from "../preview/Manager.ts";
 import * as PreviewPasskeys from "../preview/Passkeys.ts";
 
@@ -102,6 +103,7 @@ function makeFakeBrowserWindow() {
   const window = {
     close: vi.fn(),
     focus: vi.fn(),
+    hide: vi.fn(),
     getBounds: vi.fn(() => ({ x: 0, y: 0, width: 1100, height: 780 })),
     getNormalBounds: vi.fn(() => ({ x: 0, y: 0, width: 1100, height: 780 })),
     isDestroyed: vi.fn(() => false),
@@ -137,6 +139,7 @@ function makeFakeBrowserWindow() {
     isFullScreen: window.isFullScreen,
     isMaximized: window.isMaximized,
     isMinimized: window.isMinimized,
+    hide: window.hide,
     loadURL: window.loadURL,
     maximize: window.maximize,
     openDevTools: webContents.openDevTools,
@@ -163,6 +166,7 @@ const layerDesktopClientSettings = Layer.mock(DesktopClientSettings.DesktopClien
 });
 
 const layerElectronApp = Layer.mock(ElectronApp.ElectronApp)({
+  systemLocale: Effect.succeed("en-US"),
   quit: Effect.void,
 });
 
@@ -202,6 +206,12 @@ const layerElectronTheme = Layer.succeed(ElectronTheme.ElectronTheme, {
   onUpdated: () => Effect.void,
 } satisfies ElectronTheme.ElectronTheme["Service"]);
 
+const layerDesktopTray = Layer.succeed(DesktopTray.DesktopTray, {
+  ensure: () => Effect.succeed(false),
+  markQuitRequested: () => undefined,
+  shouldHideOnClose: () => false,
+});
+
 const layerDesktopEnvironment = DesktopEnvironment.layer(environmentInput).pipe(
   Layer.provide(
     Layer.mergeAll(
@@ -236,6 +246,7 @@ function layerTest(input: {
   readonly onCopyText?: (text: string) => Effect.Effect<void>;
   readonly onPopupTemplate?: (input: ElectronMenu.ElectronMenuTemplateInput) => Effect.Effect<void>;
   readonly previewZoomReapplies?: number[];
+  readonly desktopTray?: DesktopTray.DesktopTray["Service"];
   readonly onReveal?: (window: Electron.BrowserWindow) => void;
   readonly focusedWindow?: Electron.BrowserWindow;
 }) {
@@ -328,6 +339,14 @@ function layerTest(input: {
           copyText: input.onCopyText ?? (() => Effect.void),
         } satisfies ElectronShell.ElectronShell["Service"]),
         layerElectronTheme,
+        Layer.succeed(
+          DesktopTray.DesktopTray,
+          input.desktopTray ?? {
+            ensure: () => Effect.succeed(false),
+            markQuitRequested: () => undefined,
+            shouldHideOnClose: () => false,
+          },
+        ),
         layerElectronWindow,
         Layer.mock(PreviewPasskeys.PreviewPasskeys)({
           bridgeEnabled: false,
@@ -438,6 +457,7 @@ const makeSplashScenario = (createOutcomes: readonly (Electron.BrowserWindow | n
             copyText: () => Effect.void,
           } satisfies ElectronShell.ElectronShell["Service"]),
           layerElectronTheme,
+          layerDesktopTray,
           Layer.succeed(ElectronWindow.ElectronWindow, electronWindowShape),
           Layer.mock(PreviewPasskeys.PreviewPasskeys)({
             bridgeEnabled: false,
@@ -475,6 +495,69 @@ describe("DesktopWindow", () => {
     assert.deepEqual(
       DesktopWindow.resolveInitialMainWindowBounds(persistedBounds, [displays[0]!]),
       DesktopAppSettings.DEFAULT_MAIN_WINDOW_SIZE,
+    );
+  });
+
+  it.effect("hides the main window when the Windows tray intercepts close", () =>
+    Effect.gen(function* () {
+      const fakeWindow = makeFakeBrowserWindow();
+      const createCount = yield* Ref.make(0);
+      const mainWindow = yield* Ref.make<Option.Option<Electron.BrowserWindow>>(Option.none());
+      let shouldHideOnClose = true;
+      const layer = layerTest({
+        window: fakeWindow.window,
+        createCount,
+        mainWindow,
+        desktopTray: {
+          ensure: () => Effect.succeed(true),
+          markQuitRequested: () => {
+            shouldHideOnClose = false;
+          },
+          shouldHideOnClose: () => shouldHideOnClose,
+        },
+      });
+
+      yield* Effect.gen(function* () {
+        const desktopWindow = yield* DesktopWindow.DesktopWindow;
+        yield* desktopWindow.handleBackendReady(new URL("http://127.0.0.1:3773"));
+
+        const close = fakeWindow.windowListeners.get("close");
+        if (!close) {
+          return yield* Effect.die("window close listener was not registered");
+        }
+
+        let prevented = false;
+        close({ preventDefault: () => (prevented = true) });
+        assert.isTrue(prevented);
+        assert.equal(fakeWindow.hide.mock.calls.length, 1);
+
+        shouldHideOnClose = false;
+        prevented = false;
+        close({ preventDefault: () => (prevented = true) });
+        assert.isFalse(prevented);
+        assert.equal(fakeWindow.hide.mock.calls.length, 1);
+      }).pipe(Effect.provide(layer));
+    }),
+  );
+
+  it("recognizes only same-origin renderer navigations", () => {
+    assert.isTrue(
+      DesktopWindow.isSameOriginRendererNavigation({
+        applicationUrl: "t3code://app/",
+        navigationUrl: "t3code://app/settings/connections",
+      }),
+    );
+    assert.isFalse(
+      DesktopWindow.isSameOriginRendererNavigation({
+        applicationUrl: "t3code://app/",
+        navigationUrl: "https://accounts.microsoft.com/oauth",
+      }),
+    );
+    assert.isFalse(
+      DesktopWindow.isSameOriginRendererNavigation({
+        applicationUrl: "t3code://app/",
+        navigationUrl: "not a url",
+      }),
     );
   });
 
@@ -540,6 +623,39 @@ describe("DesktopWindow", () => {
       }),
     );
   });
+
+  it.effect("does not open a development window until the backend is ready", () =>
+    Effect.gen(function* () {
+      const fakeWindow = makeFakeBrowserWindow();
+      const createCount = yield* Ref.make(0);
+      const mainWindow = yield* Ref.make<Option.Option<Electron.BrowserWindow>>(Option.none());
+      const createdWindowOptions: Electron.BrowserWindowConstructorOptions[] = [];
+      const layer = layerTest({
+        window: fakeWindow.window,
+        createCount,
+        mainWindow,
+        createdWindowOptions,
+      });
+
+      yield* Effect.gen(function* () {
+        const desktopWindow = yield* DesktopWindow.DesktopWindow;
+        yield* desktopWindow.activate;
+        assert.equal(yield* Ref.get(createCount), 0);
+
+        yield* desktopWindow.handleBackendReady(new URL("http://127.0.0.1:3773"));
+        assert.equal(yield* Ref.get(createCount), 1);
+        assert.equal(createdWindowOptions[0]?.width, 1100);
+        assert.equal(createdWindowOptions[0]?.height, 780);
+        assert.isUndefined(createdWindowOptions[0]?.x);
+        assert.isUndefined(createdWindowOptions[0]?.y);
+        assert.isTrue(createdWindowOptions[0]?.disableAutoHideCursor);
+        assert.isFalse(createdWindowOptions[0]?.webPreferences?.backgroundThrottling);
+        assert.deepEqual(fakeWindow.setAutoHideCursor.mock.calls, [[false]]);
+        assert.deepEqual(fakeWindow.loadURL.mock.calls[0], ["t3code-dev://app/"]);
+        assert.equal(fakeWindow.openDevTools.mock.calls.length, 1);
+      }).pipe(Effect.provide(layer));
+    }),
+  );
 
   it.effect(
     "opens and reopens the window without backend readiness when local execution is disabled",

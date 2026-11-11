@@ -1,3 +1,6 @@
+import { chineseTemplate } from "@t3tools/shared/chineseUi";
+import { translateWebSource } from "../../i18n/messages";
+import { useI18n } from "../../i18n/WebI18nContext";
 import { AndroidIcon, AppleIcon } from "../Icons";
 import { Button } from "../ui/button";
 import { Popover, PopoverPopup, PopoverTitle, PopoverTrigger } from "../ui/popover";
@@ -21,10 +24,16 @@ const stores = [
 ];
 
 export function MobileAppSettingsRow() {
+  const { locale: sourceLocale } = useI18n();
   return (
     <SettingsRow
-      {...searchableSetting("mobile-app")}
-      description="Connect to your server from your phone or tablet."
+      {...searchableSetting("mobile-app", sourceLocale)}
+      description={
+        <>
+          {translateWebSource(sourceLocale, "Connect to your server from your phone or tablet.")}{" "}
+          {translateWebSource(sourceLocale, "Official version (not translated)")}
+        </>
+      }
       control={
         <div className="flex items-center gap-2">
           {stores.map(({ label, store, url, Icon }) => (
@@ -35,15 +44,24 @@ export function MobileAppSettingsRow() {
               </PopoverTrigger>
               <PopoverPopup align="end">
                 <div className="flex flex-col items-center gap-3">
-                  <PopoverTitle>{store}</PopoverTitle>
-                  <p className="text-xs text-muted-foreground">Scan with your phone camera.</p>
+                  <PopoverTitle>
+                    {store} ·{" "}
+                    {translateWebSource(sourceLocale, "Official version (not translated)")}
+                  </PopoverTitle>
+                  <p className="text-xs text-muted-foreground">
+                    {translateWebSource(sourceLocale, "Scan with your phone camera.")}
+                  </p>
                   <div className="rounded-lg bg-white p-1.5">
                     <QRCodeSvg
                       value={url}
                       size={128}
                       level="M"
                       marginSize={1}
-                      title={`${store} link`}
+                      title={
+                        sourceLocale !== "en"
+                          ? chineseTemplate(sourceLocale)`${store}链接`
+                          : `${store} link`
+                      }
                     />
                   </div>
                   <Button
@@ -51,7 +69,7 @@ export function MobileAppSettingsRow() {
                     variant="outline"
                     render={<a href={url} target="_blank" rel="noreferrer noopener" />}
                   >
-                    Open {store}
+                    {translateWebSource(sourceLocale, "Open")} {store}
                   </Button>
                 </div>
               </PopoverPopup>
