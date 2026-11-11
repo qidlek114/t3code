@@ -18,15 +18,18 @@ jobs:
     env:
       VITEST_MAX_WORKERS: "1"
     steps:
-      - uses: actions/checkout@v6
-        with:
-          sparse-checkout: |
-            /*
-            !/.repos/
-            !/apps/mobile/modules/t3-terminal/Vendor/**/*.a
-          sparse-checkout-cone-mode: false
-          fetch-depth: 0
-          persist-credentials: false
+      - name: Check out public source without submodule credential cleanup
+        shell: bash
+        env:
+          CHECKOUT_REF: ${{ github.sha }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags origin "$CHECKOUT_REF"
+          git sparse-checkout set --no-cone '/*' '!/.repos/' '!/apps/mobile/modules/t3-terminal/Vendor/**/*.a'
+          git checkout --detach FETCH_HEAD
       - uses: ./.github/actions/setup-ci-deps
       - run: vp exec playwright install --with-deps chromium
         working-directory: apps/web

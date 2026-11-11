@@ -22,15 +22,19 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v6
-        with:
-          sparse-checkout: |
-            /*
-            !/.repos/
-            !/apps/mobile/modules/t3-terminal/Vendor/**/*.a
-          sparse-checkout-cone-mode: false
-          ref: localization
-          fetch-depth: 0
+      - name: Check out public source without submodule credential cleanup
+        shell: bash
+        env:
+          CHECKOUT_REF: refs/heads/localization
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags origin "$CHECKOUT_REF"
+          git sparse-checkout set --no-cone '/*' '!/.repos/' '!/apps/mobile/modules/t3-terminal/Vendor/**/*.a'
+          git checkout -B localization FETCH_HEAD
+          gh auth setup-git --hostname github.com
       - name: Merge the latest official stable release into a review branch
         shell: bash
         run: |
