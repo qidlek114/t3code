@@ -30,7 +30,7 @@ describe("settings controls localization", () => {
     const english = layers(settings, "worktreeCleanup", "en");
     const chinese = layers(settings, "worktreeCleanup", "zh-CN");
     expect(english.map((layer) => layer.value)).toEqual(["Off", "Not set"]);
-    expect(chinese.map((layer) => layer.value)).toEqual(["关", "未设置"]);
+    expect(chinese.map((layer) => layer.value)).toEqual(["关闭", "未设置"]);
     expect(chinese.map(({ key, effective, set }) => ({ key, effective, set }))).toEqual(
       english.map(({ key, effective, set }) => ({ key, effective, set })),
     );
