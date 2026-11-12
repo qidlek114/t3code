@@ -1,4 +1,9 @@
-import { chineseText, chineseTemplate, hasTraditionalTranslation } from "@t3tools/shared/chineseUi";
+import {
+  chineseText,
+  chineseTemplate,
+  hasTraditionalTranslation,
+  hasUiTranslation,
+} from "@t3tools/shared/chineseUi";
 import { welcomePrivacyClause } from "./welcomePrivacyClause";
 
 import { describe, expect, it } from "vite-plus/test";
@@ -332,6 +337,10 @@ describe("source translation own-property lookup", () => {
   });
 
   it("retains known source translations, keyed fallback, and unknown text", () => {
+    expect(translateWebSource("ja", "Off")).toBe("オフ");
+    expect(translateWebSource("ja", "Close")).toBe("閉じる");
+    expect(translateWebSource("ko", "Off")).toBe("끔");
+    expect(translateWebSource("ko", "Close")).toBe("닫기");
     expect(translateWebSource("zh-CN", "Continue with ChatGPT")).toBe("使用 ChatGPT 继续");
     expect(translateWebSource("en", "Continue with ChatGPT")).toBe("Continue with ChatGPT");
     expect(translateWebSource("zh-CN", "Settings")).toBe("设置");
@@ -341,20 +350,26 @@ describe("source translation own-property lookup", () => {
   });
 });
 
-it("translates only static Traditional Chinese copy before inserting opaque values", () => {
+it("translates only static copy before inserting opaque values, including reordered templates", () => {
   const project = "我的设置/软件 $& {name} <script>";
   expect(translateWebMessage("zh-TW", "project.pinAction", { name: project })).toContain(project);
   expect(translateWebSource("zh-TW", project)).toBe(project);
   expect(chineseText("zh-TW", "设置")).toBe("設定");
   expect(chineseTemplate("zh-TW")`打开 ${project}`).toBe(`開啟 ${project}`);
+  for (const locale of ["ja", "ko"] as const) {
+    expect(translateWebMessage(locale, "project.pinAction", { name: project })).toContain(project);
+    expect(translateWebSource(locale, project)).toBe(project);
+  }
+  expect(chineseTemplate("ja")`打开 ${project}`).toBe(`${project} を開く`);
+  expect(chineseTemplate("ko")`打开 ${project}`).toBe(`${project} 열기`);
 });
 
-it("keeps all three catalogs complete with identical parameter names", () => {
+it("keeps all five catalogs complete with identical parameter names", () => {
   const placeholders = (value: string) =>
     [...new Set(value.match(/\{[A-Za-z][A-Za-z0-9]*\}/g) ?? [])].sort();
   for (const key of Object.keys(WEB_MESSAGES.en) as (keyof typeof WEB_MESSAGES.en)[]) {
     const english = WEB_MESSAGES.en[key];
-    for (const locale of ["zh-CN", "zh-TW"] as const) {
+    for (const locale of ["zh-CN", "zh-TW", "ja", "ko"] as const) {
       expect(WEB_MESSAGES[locale][key], `${locale}:${key}`).not.toBe("");
       expect(placeholders(WEB_MESSAGES[locale][key]), `${locale}:${key}`).toEqual(
         placeholders(english),
@@ -363,6 +378,9 @@ it("keeps all three catalogs complete with identical parameter names", () => {
     const simplified = WEB_MESSAGES["zh-CN"][key];
     if (/[\u3400-\u9fff]/.test(simplified)) {
       expect(hasTraditionalTranslation(simplified), `Missing Traditional entry: ${key}`).toBe(true);
+      for (const locale of ["ja", "ko"] as const) {
+        expect(hasUiTranslation(locale, simplified), `Missing ${locale} entry: ${key}`).toBe(true);
+      }
     }
   }
 });

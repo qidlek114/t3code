@@ -196,6 +196,6 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          printf 'English / 简体中文 / 繁體中文\n\nSource: %s\n\nSigned and notarized for Apple Silicon and Intel. Both packaged launch checks passed. Separate app identity and data directories; updates point to qidlek114/t3code.\n\n' "$SOURCE_SHA" > "$RUNNER_TEMP/i18n-release-notes.md"
+          printf 'English / 简体中文 / 繁體中文 / 日本語 / 한국어\n\nSource: %s\n\nSigned and notarized for Apple Silicon and Intel. Both packaged launch checks passed. Separate app identity and data directories; updates point to qidlek114/t3code.\n\n' "$SOURCE_SHA" > "$RUNNER_TEMP/i18n-release-notes.md"
           cat docs/user/localization-preview.md >> "$RUNNER_TEMP/i18n-release-notes.md"
           gh release create "v$VERSION" release-publish/* --target "$SOURCE_SHA" --draft --prerelease --title "T3 Code I18n $VERSION" --notes-file "$RUNNER_TEMP/i18n-release-notes.md"

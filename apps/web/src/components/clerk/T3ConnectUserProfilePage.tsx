@@ -37,6 +37,8 @@ const linkedAtFormatters = {
   en: new Intl.DateTimeFormat("en", { dateStyle: "medium" }),
   "zh-CN": new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium" }),
   "zh-TW": new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium" }),
+  ja: new Intl.DateTimeFormat("ja", { dateStyle: "medium" }),
+  ko: new Intl.DateTimeFormat("ko", { dateStyle: "medium" }),
 };
 
 function linkedAtLabel(value: string, locale: ResolvedAppLocale, t: WebTranslate): string {

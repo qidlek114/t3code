@@ -1,5 +1,8 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
 contact_links:
-  - name: Feature request
-    url: https://github.com/pingdotgg/t3code/discussions/categories/ideas
-    about: Suggest an improvement or new capability in Discussions.
+  - name: Downloads / 安装包
+    url: https://github.com/qidlek114/t3code/releases
+    about: Download published T3 Code I18n previews for macOS.
+  - name: T3 Connect limitations / 云功能限制
+    url: https://github.com/qidlek114/t3code/blob/localization/docs/user/localization-preview.md
+    about: Official T3 Connect is not supported in this community preview.

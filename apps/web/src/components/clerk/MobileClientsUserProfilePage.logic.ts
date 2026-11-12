@@ -11,6 +11,8 @@ const mobileClientLocaleFormatters = {
   en: new Intl.DateTimeFormat("en", { dateStyle: "medium", timeStyle: "short" }),
   "zh-CN": new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium", timeStyle: "short" }),
   "zh-TW": new Intl.DateTimeFormat("zh-TW", { dateStyle: "medium", timeStyle: "short" }),
+  ja: new Intl.DateTimeFormat("ja", { dateStyle: "medium", timeStyle: "short" }),
+  ko: new Intl.DateTimeFormat("ko", { dateStyle: "medium", timeStyle: "short" }),
 };
 
 const NOTIFICATION_PREFERENCES = [

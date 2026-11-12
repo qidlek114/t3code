@@ -20,6 +20,60 @@ interface StartupRecoveryMessages {
 }
 
 const messages = {
+  ja: {
+    title: "T3 Code を起動できませんでした",
+    checking: "新しいバージョンを確認中…",
+    update: (version) =>
+      `バージョン ${version} を利用できます。問題が修正されている可能性があります。`,
+    updateAction: (version) => `${version} にアップデート`,
+    downloading: (version, progress) =>
+      `${version}${progress} をダウンロード中。完了すると T3 Code が再起動します。`,
+    reinstall: (version) =>
+      `バージョン ${version} はこのコンピューターで正常に起動しました。ダウンロードしてインストールすると、元のバージョンに戻せます。`,
+    reinstallAction: (version) => `${version} をダウンロード`,
+    releases: "リリースページから別のバージョンを取得できます。",
+    releasesAction: "リリースページを開く",
+    managedPolicy:
+      "組織の管理ポリシーにより T3 Code の起動がブロックされました。以下の詳細を IT 管理者にお送りください。",
+    copy: "詳細をコピー",
+    quit: "終了",
+    noOutput: "サーバーからの出力はありません。",
+    footer: (version, logDir) =>
+      `バージョン ${version}。T3 Code はバックグラウンドで再試行します。ログ：${logDir}`,
+    failureReason: (reason) => {
+      if (reason === "The server started but did not become ready in time.")
+        return "サーバーは起動しましたが、準備が時間内に完了しませんでした。";
+      const failed = /^The server could not start \((.*)\)\.$/.exec(reason);
+      return failed ? `サーバーを起動できませんでした（${failed[1]}）。` : reason;
+    },
+  },
+  ko: {
+    title: "T3 Code를 시작할 수 없습니다",
+    checking: "새 버전 확인 중…",
+    update: (version) =>
+      `${version} 버전을 사용할 수 있습니다. 문제 해결이 포함되어 있을 수 있습니다.`,
+    updateAction: (version) => `${version}(으)로 업데이트`,
+    downloading: (version, progress) =>
+      `${version}${progress} 다운로드 중입니다. 완료되면 T3 Code가 다시 시작됩니다.`,
+    reinstall: (version) =>
+      `${version} 버전은 이 컴퓨터에서 정상적으로 실행되었습니다. 다운로드하여 설치하면 이전 버전으로 돌아갈 수 있습니다.`,
+    reinstallAction: (version) => `${version} 다운로드`,
+    releases: "릴리스 페이지에서 다른 버전을 받을 수 있습니다.",
+    releasesAction: "릴리스 페이지 열기",
+    managedPolicy:
+      "조직의 관리 정책으로 인해 T3 Code가 시작되지 않았습니다. 아래 세부 정보를 IT 관리자에게 보내 주세요.",
+    copy: "세부 정보 복사",
+    quit: "종료",
+    noOutput: "서버 출력이 없습니다.",
+    footer: (version, logDir) =>
+      `버전 ${version}. T3 Code가 백그라운드에서 다시 시도합니다. 로그: ${logDir}`,
+    failureReason: (reason) => {
+      if (reason === "The server started but did not become ready in time.")
+        return "서버가 시작되었지만 제한 시간 내에 준비되지 않았습니다.";
+      const failed = /^The server could not start \((.*)\)\.$/.exec(reason);
+      return failed ? `서버를 시작할 수 없습니다(${failed[1]}).` : reason;
+    },
+  },
   en: {
     title: "T3 Code could not start",
     checking: "Checking for a newer version…",

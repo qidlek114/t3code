@@ -1,4 +1,6 @@
 import { zhTW } from "@daypicker/react/locale/zh-TW";
+import { ja } from "@daypicker/react/locale/ja";
+import { ko } from "@daypicker/react/locale/ko";
 import { zhCN } from "@daypicker/react/locale/zh-CN";
 import { useI18n } from "../i18n/WebI18nContext";
 import { translateWebSource } from "../i18n/messages";
@@ -157,7 +159,15 @@ function CustomSnoozeDialog() {
                           <Calendar
                             mode="single"
                             locale={
-                              locale === "zh-TW" ? zhTW : locale === "zh-CN" ? zhCN : undefined
+                              locale === "zh-TW"
+                                ? zhTW
+                                : locale === "zh-CN"
+                                  ? zhCN
+                                  : locale === "ja"
+                                    ? ja
+                                    : locale === "ko"
+                                      ? ko
+                                      : undefined
                             }
                             formatters={{
                               formatMonthDropdown: (month) =>

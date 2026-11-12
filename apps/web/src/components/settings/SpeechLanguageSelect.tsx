@@ -11,6 +11,8 @@ const languageNames = {
   en: new Intl.DisplayNames(["en"], { type: "language" }),
   "zh-CN": new Intl.DisplayNames(["zh-CN"], { type: "language" }),
   "zh-TW": new Intl.DisplayNames(["zh-TW"], { type: "language" }),
+  ja: new Intl.DisplayNames(["ja"], { type: "language" }),
+  ko: new Intl.DisplayNames(["ko"], { type: "language" }),
 };
 export const languageLabel = (code: string, locale: ResolvedAppLocale = "en") =>
   languageNames[locale].of(code) ?? code;

@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 > **T3 Code I18n — 社区多语言预览版 / community multilingual preview**
 >
-> English、简体中文、繁體中文。macOS 安装包请从[本 fork 的 Releases](https://github.com/qidlek114/t3code/releases)下载；下方保留的是上游项目说明。
+> English、简体中文、繁體中文、日本語、한국어。请先阅读[本 fork 的多语言首页](.github/README.md)。macOS 安装包请从[本 fork 的 Releases](https://github.com/qidlek114/t3code/releases)下载；下方保留的是上游项目说明。
 >
 > **尚未获得官方 T3 Connect 对本 fork 独立应用身份的接入批准。本预览版暂不支持 T3 Connect 及依赖它的云端功能。** 原生通行密钥和独立 SSO 回跳尚未接入，其余云端流程未完成真实账号验收；界面中保留入口不代表可用。详见[功能限制、安装与更新](docs/user/localization-preview.md)和[官方接入申请](https://github.com/pingdotgg/t3code/discussions/34667)。
 >

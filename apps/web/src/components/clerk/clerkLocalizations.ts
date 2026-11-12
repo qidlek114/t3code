@@ -1,10 +1,14 @@
 import { enUS } from "@clerk/localizations/en-US";
+import { jaJP } from "@clerk/localizations/ja-JP";
+import { koKR } from "@clerk/localizations/ko-KR";
 import { zhCN } from "@clerk/localizations/zh-CN";
 import { zhTW } from "@clerk/localizations/zh-TW";
 
 // Fill missing account-flow entries in Clerk 4.24.6; interpolation remains owned by Clerk.
 export const clerkLocalizations = {
   en: enUS,
+  ja: jaJP,
+  ko: koKR,
   "zh-CN": {
     ...zhCN,
     actionBlocked: {

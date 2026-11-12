@@ -47,7 +47,7 @@ describe("ClientSettings app locale", () => {
     expect(decodeClientSettings({}).appLocale).toBe(DEFAULT_APP_LOCALE_PREFERENCE);
   });
 
-  it.each(["system", "en", "zh-CN", "zh-TW"] as const)(
+  it.each(["system", "en", "zh-CN", "zh-TW", "ja", "ko"] as const)(
     "accepts a supported app locale preference: %s",
     (appLocale) => {
       expect(decodeClientSettings({ appLocale }).appLocale).toBe(appLocale);

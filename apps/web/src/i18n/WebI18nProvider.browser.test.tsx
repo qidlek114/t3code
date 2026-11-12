@@ -148,6 +148,8 @@ it("updates when the runtime language changes while following the system", async
 it.each([
   ["zh-CN", "简体中文", "设置"],
   ["zh-TW", "繁體中文", "設定"],
+  ["ja", "日本語", "設定"],
+  ["ko", "한국어", "설정"],
   ["en", "English", "Settings"],
 ] as const)("persists %s and updates the UI without a reload", async (locale, label, heading) => {
   using state = setup({ appLocale: locale === "en" ? "zh-CN" : "en" });
@@ -160,7 +162,7 @@ it.each([
   expect(screen.getByRole("heading").element().textContent).toBe(heading);
   expect(document.documentElement.lang).toBe(locale);
   expect(screen.getByRole("status", { name: "Cloud locale" }).element().textContent).toBe(
-    locale === "en" ? "en-US" : locale,
+    locale === "en" ? "en-US" : locale === "ja" ? "ja-JP" : locale === "ko" ? "ko-KR" : locale,
   );
 });
 

@@ -7,6 +7,8 @@ describe("resolveAppLocale", () => {
     expect(resolveAppLocale("en", ["zh-CN"])).toBe("en");
     expect(resolveAppLocale("zh-CN", ["en-US"])).toBe("zh-CN");
     expect(resolveAppLocale("zh-TW", ["zh-CN"])).toBe("zh-TW");
+    expect(resolveAppLocale("ja", ["ko-KR"])).toBe("ja");
+    expect(resolveAppLocale("ko", ["ja-JP"])).toBe("ko");
   });
 
   it.each(["zh", "zh-CN", "zh-SG", "zh-Hans", "zh-Hans-CN"])(
@@ -26,6 +28,8 @@ describe("resolveAppLocale", () => {
   it("uses the first supported runtime locale", () => {
     expect(resolveAppLocale("system", ["fr-FR", "zh-CN", "en-US"])).toBe("zh-CN");
     expect(resolveAppLocale("system", ["fr-FR", "en-GB", "zh-CN"])).toBe("en");
+    expect(resolveAppLocale("system", ["fr-FR", "ja-JP", "zh-CN"])).toBe("ja");
+    expect(resolveAppLocale("system", ["ko-KR", "ja-JP"])).toBe("ko");
   });
 
   it("keeps an explicit Traditional Chinese preference from falling through to bare Chinese", () => {

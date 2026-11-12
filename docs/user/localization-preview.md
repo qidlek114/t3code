@@ -1,6 +1,6 @@
 # T3 Code I18n 预览版
 
-这是社区维护的 T3 Code 多语言 fork，提供 English、简体中文和繁體中文，可在设置中切换或跟随系统。本版本不是官方发行版，也不代表官方认可或提供支持。
+这是社区维护的 T3 Code 多语言 fork，提供 English、简体中文、繁體中文、日本語和한국어，可在设置中切换或跟随系统。本版本不是官方发行版，也不代表官方认可或提供支持。
 
 ## 安装
 
@@ -33,9 +33,9 @@ SSH、局域网地址和 Tailscale HTTPS 直连也不需要 T3 Connect；仍需�
 
 ## 翻译与更新范围
 
-本次补全设置中的通知、新任务、快照、工作树、Tailscale、源码管理、版本状态及相关选项文案。模型回复、终端输出、项目文件、第三方网页和提供商的原始错误保留原文。官方后续新增界面仍可能出现需要补译的英文。
+支持英文、简体中文、繁体中文、日语和韩语，包含设置、主界面及原生桌面菜单。日语、韩语为新增预览译文，常用界面和插值模板已校正，尚未经完整母语审校。模型回复、终端输出、项目文件、第三方网页和提供商的原始错误保留原文。官方后续新增界面仍可能出现需要补译的英文。
 
-应用更新源指向 `qidlek114/t3code`，不安装官方二进制；官方二进制不包含本 fork 的翻译。维护者会在本 fork 合并官方源码、验证并发布自己的安装包。首个公开预览版没有已验证的“上一公开版本自动升级”路径；遇到更新问题可手动下载新版 DMG。
+应用更新源指向 `qidlek114/t3code`，不安装官方二进制；官方二进制不包含本 fork 的翻译。维护者会在本 fork 合并官方源码、验证并发布自己的安装包。连续公开版本之间的完整自动升级尚未验收；遇到更新问题可手动下载新版 DMG。
 
 ## English: unavailable and unverified cloud features
 
@@ -47,4 +47,4 @@ This is a community multilingual preview, not an official T3 Code distribution. 
 - Account-linked environment discovery, registration and connections, official web/mobile access through T3 Connect, managed public tunnels, and MCP access through those tunnels are unsupported in this preview.
 - Relay-forwarded and offline-held webhooks, T3 Chat account linking for tunnel limits, and cloud account/device management are unsupported and unverified.
 
-These are preview support limits, not claims that every flow was tested and failed. Some upstream cloud entry points remain visible. Local providers and projects, SSH, LAN and Tailscale direct connections do not require T3 Connect; each still requires its own setup and permissions. Updates use this fork's signed releases. The first public preview has no verified upgrade path from a preceding public version.
+These are preview support limits, not claims that every flow was tested and failed. Some upstream cloud entry points remain visible. Local providers and projects, SSH, LAN and Tailscale direct connections do not require T3 Connect; each still requires its own setup and permissions. Updates use this fork's signed releases. An end-to-end automatic upgrade between consecutive public versions has not yet been accepted. Japanese and Korean are new preview translations and have not received exhaustive native-speaker review.

@@ -18,6 +18,9 @@ function resolveRuntimeLocale(runtimeLocale: string): ResolvedAppLocale | null {
   if (locale.language === "en") {
     return "en";
   }
+  if (locale.language === "ja" || locale.language === "ko") {
+    return locale.language;
+  }
   if (locale.language !== "zh") {
     return null;
   }

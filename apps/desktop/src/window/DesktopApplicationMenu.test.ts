@@ -628,6 +628,8 @@ describe("DesktopApplicationMenu", () => {
   it.effect.each([
     { appLocale: "en", viewLabel: "View", labels: ["Zoom In", "Zoom Out", "Actual Size"] },
     { appLocale: "zh-CN", viewLabel: "视图", labels: ["放大", "缩小", "实际大小"] },
+    { appLocale: "ja", viewLabel: "表示", labels: ["拡大", "縮小", "実際のサイズ"] },
+    { appLocale: "ko", viewLabel: "보기", labels: ["확대", "축소", "실제 크기"] },
   ] as const)(
     "zooms from the numeric keypad in $appLocale without duplicate visible commands",
     ({ appLocale, viewLabel, labels }) =>

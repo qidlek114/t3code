@@ -1,0 +1,46 @@
+name: Translation / 翻译问题 / 翻訳 / 번역
+description: Report missing, inaccurate or overflowing interface text in T3 Code I18n.
+title: "[i18n]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        English、简体中文、繁體中文、日本語、한국어 are welcome.
+        Please report only application interface text. Model responses, terminal output and external websites are not translated by this fork.
+        Remove tokens, account details and private project content from screenshots.
+  - type: input
+    id: version
+    attributes:
+      label: Version / 版本
+      placeholder: Copy the complete version from Settings.
+    validations:
+      required: true
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language / 语言
+      options:
+        - English
+        - 简体中文
+        - 繁體中文
+        - 日本語
+        - 한국어
+    validations:
+      required: true
+  - type: textarea
+    id: location
+    attributes:
+      label: Where does it appear? / 出现位置
+      description: Give the screen, steps to reach it, current wording and an optional screenshot.
+    validations:
+      required: true
+  - type: textarea
+    id: wording
+    attributes:
+      label: Suggested wording / 建议译文
+      description: Include context when a term has more than one meaning.
+  - type: input
+    id: system
+    attributes:
+      label: Operating system / 操作系统
+      placeholder: macOS version, Apple Silicon or Intel; browser if applicable.

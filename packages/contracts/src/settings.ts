@@ -64,7 +64,7 @@ import {
 
 // ── Client Settings (local-only) ───────────────────────────────
 
-export const AppLocalePreference = Schema.Literals(["system", "en", "zh-CN", "zh-TW"]);
+export const AppLocalePreference = Schema.Literals(["system", "en", "zh-CN", "zh-TW", "ja", "ko"]);
 export type AppLocalePreference = typeof AppLocalePreference.Type;
 export const DEFAULT_APP_LOCALE_PREFERENCE: AppLocalePreference = "system";
 

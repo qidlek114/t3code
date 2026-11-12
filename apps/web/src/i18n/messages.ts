@@ -1,4 +1,9 @@
-import { chineseText, traditionalMessages } from "@t3tools/shared/chineseUi";
+import {
+  chineseText,
+  localizedMessages,
+  traditionalMessages,
+  translateEnglishUi,
+} from "@t3tools/shared/chineseUi";
 import type { ResolvedAppLocale } from "@t3tools/shared/appLocale";
 
 const EN_MESSAGES = {
@@ -8298,6 +8303,8 @@ export const WEB_MESSAGES: Readonly<Record<ResolvedAppLocale, WebMessages>> = {
   en: EN_MESSAGES,
   "zh-CN": ZH_CN_MESSAGES,
   "zh-TW": traditionalMessages(ZH_CN_MESSAGES),
+  ja: localizedMessages("ja", ZH_CN_MESSAGES, EN_MESSAGES),
+  ko: localizedMessages("ko", ZH_CN_MESSAGES, EN_MESSAGES),
 };
 
 const WEB_MESSAGE_KEY_BY_ENGLISH_SOURCE = new Map<string, WebMessageKey>();
@@ -12466,6 +12473,8 @@ const ZH_CN_SOURCE_MESSAGES: Readonly<Record<string, string>> = {
 
 /** Translate static UI copy supplied by upstream components as English source text. */
 export function translateWebSource(locale: ResolvedAppLocale, source: string): string {
+  const sourceOverride = translateEnglishUi(locale, source);
+  if (sourceOverride !== undefined) return sourceOverride;
   if (locale !== "en" && Object.hasOwn(ZH_CN_SOURCE_MESSAGES, source)) {
     const translatedSource = ZH_CN_SOURCE_MESSAGES[source];
     if (translatedSource !== undefined) return chineseText(locale, translatedSource);

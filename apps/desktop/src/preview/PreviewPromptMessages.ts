@@ -14,6 +14,29 @@ export interface PreviewPromptMessages {
 }
 
 const messages = {
+  ja: {
+    open: "開く",
+    cancel: "キャンセル",
+    allow: "許可",
+    block: "ブロック",
+    openLink: (protocol) => `この ${protocol} リンクを開きますか？`,
+    openLinkDetail: (url) => `ブラウザー内のページが別のアプリを開こうとしています：\n\n${url}`,
+    clipboardRead: (origin) =>
+      `${origin} がクリップボードのテキストと画像へのアクセスを求めています`,
+    choosePasskey: "パスキーを選択",
+    unnamedPasskey: "名前のないパスキー",
+  },
+  ko: {
+    open: "열기",
+    cancel: "취소",
+    allow: "허용",
+    block: "차단",
+    openLink: (protocol) => `이 ${protocol} 링크를 여시겠습니까?`,
+    openLinkDetail: (url) => `브라우저의 페이지에서 다른 앱을 열려고 합니다:\n\n${url}`,
+    clipboardRead: (origin) => `${origin}에서 클립보드의 텍스트와 이미지에 접근하려고 합니다`,
+    choosePasskey: "패스키 선택",
+    unnamedPasskey: "이름 없는 패스키",
+  },
   en: {
     open: "Open",
     cancel: "Cancel",
