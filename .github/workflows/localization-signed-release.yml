@@ -128,6 +128,9 @@ jobs:
           grep -qx 'owner: qidlek114' "$app/Contents/Resources/app-update.yml"
           grep -qx 'repo: t3code' "$app/Contents/Resources/app-update.yml"
           grep -qx 'updaterCacheDirName: t3code-i18n-updater' "$app/Contents/Resources/app-update.yml"
+          for language in en zh_CN zh_TW ja ko; do
+            test -d "$app/Contents/Frameworks/Electron Framework.framework/Resources/$language.lproj"
+          done
           codesign --verify --deep --strict "$app"
           codesign -dv --verbose=4 "$app" 2> "$RUNNER_TEMP/i18n-signature.txt"
           [[ "$(sed -n 's/^TeamIdentifier=//p' "$RUNNER_TEMP/i18n-signature.txt")" == "$EXPECTED_TEAM_ID" ]]

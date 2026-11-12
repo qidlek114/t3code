@@ -35,7 +35,7 @@ const replacements = {
     ],
     [
       'DESKTOP_ELECTRON_LANGUAGES = ["en-US"]',
-      'DESKTOP_ELECTRON_LANGUAGES = ["en-US", "zh-CN", "zh-TW"]',
+      'DESKTOP_ELECTRON_LANGUAGES = ["en-US", "zh-CN", "zh-TW", "ja", "ko"]',
     ],
     ['? "T3 Code (Nightly)"', '? "T3 Code I18n (Nightly)"'],
     [
