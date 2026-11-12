@@ -450,6 +450,7 @@ function DictionaryEditor(props: {
 /** Vocabulary stored on the environment with the project, read by everyone who dictates there. */
 function ProjectDictionaryRow() {
   const { t } = useI18n();
+  const localizeUi = useSourceTranslation();
   const scope = useOptionalSettingsScope();
   const words = useScopedSettings((settings) => settings.speechProjectCustomWords);
   const updateScopedSettings = useUpdateScopedSettings();
@@ -476,7 +477,7 @@ function ProjectDictionaryRow() {
     >
       <div className="mt-2 pb-3.5">
         <DictionaryEditor
-          label={isProjectScope ? "project dictionary" : "shared dictionary"}
+          label={localizeUi(isProjectScope ? "project dictionary" : "shared dictionary")}
           words={words}
           disabled={scope.connectedEnvironments.length === 0}
           onChange={(next) => updateScopedSettings({ speechProjectCustomWords: next })}
@@ -759,12 +760,12 @@ function AdvancedSpeechSettings({
             >
               <SelectValue>
                 {supported.acceleration === "auto"
-                  ? "Auto"
+                  ? localizeUi("Auto")
                   : supported.acceleration === "cpu"
                     ? "CPU"
                     : (supported.gpuDevices.find(
                         (device) => `gpu:${device.id}` === supported.acceleration,
-                      )?.name ?? "Selected GPU")}
+                      )?.name ?? localizeUi("Selected GPU"))}
               </SelectValue>
             </SelectTrigger>
             <SelectPopup align="end" alignItemWithTrigger={false}>
@@ -1479,12 +1480,13 @@ export function VoiceSettingsPanel() {
                         {destination.cloudProvider
                           ? CLOUD_SPEECH_LABELS[destination.cloudProvider]
                           : destination.environmentId
-                            ? (chosenEnvironment?.label ?? "Chosen environment (unavailable)")
-                            : "Off"}
+                            ? (chosenEnvironment?.label ??
+                              localizeUi("Chosen environment (unavailable)"))
+                            : localizeUi("Off")}
                         {destination.cloudProvider && (
                           <span className="text-muted-foreground">
-                            {" via "}
-                            {chosenEnvironment?.label ?? "unavailable environment"}
+                            {localizeUi(" via ")}
+                            {chosenEnvironment?.label ?? localizeUi("unavailable environment")}
                           </span>
                         )}
                       </span>
@@ -1742,7 +1744,9 @@ export function VoiceSettingsPanel() {
                   className="max-w-64"
                 >
                   <SelectValue>
-                    {settings.speechPostProcessingPrompt.mode === "custom" ? "Custom" : "Built-in"}
+                    {settings.speechPostProcessingPrompt.mode === "custom"
+                      ? localizeUi("Custom")
+                      : localizeUi("Built-in")}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>

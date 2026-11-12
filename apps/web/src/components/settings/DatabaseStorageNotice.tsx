@@ -76,10 +76,10 @@ export function DatabaseStorageNotice({
     <SettingsSection id="storage-database" title={translateWebSource(sourceLocale, "Database")}>
       <SettingsRow
         title={translateWebSource(sourceLocale, "Reclaim freed database space")}
-        description={`These databases still hold space freed by history cleanup.${
+        description={`${translateWebSource(sourceLocale, "These databases still hold space freed by history cleanup.")}${
           visible.every((recommendation) => recommendation.reclaimable)
             ? ""
-            : " Run the command on each machine to reclaim it. It restarts the background service. Quit the desktop app first if it hosts the environment."
+            : ` ${translateWebSource(sourceLocale, "Run the command on each machine to reclaim it. It restarts the background service. Quit the desktop app first if it hosts the environment.")}`
         }`}
       />
       {visible.map(({ environmentId, status, label, reclaimable }) => {
@@ -135,7 +135,7 @@ function ReclaimRow({
   readonly status: DatabaseStorageStatus;
   readonly dismiss: ReactNode;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const reclaim = useAtomCommand(serverEnvironment.reclaimDatabaseSpace);
   const [confirming, setConfirming] = useState(false);
   const [requested, setRequested] = useState(false);
@@ -166,11 +166,11 @@ function ReclaimRow({
   };
   return (
     <SettingsRow
-      title={`${amount} on ${label}`}
+      title={t("localization.settings.storageAmount", { amount, environment: label })}
       description={
         status.reclaimFailure === undefined
-          ? `Restarts T3 Code there. It will be offline for about ${minutes} min.`
-          : `The last attempt failed: ${status.reclaimFailure}`
+          ? t("localization.settings.storageRestart", { minutes })
+          : t("localization.settings.storageFailure", { error: status.reclaimFailure })
       }
       control={
         <div className="flex flex-wrap items-center gap-1.5">
@@ -180,7 +180,7 @@ function ReclaimRow({
             disabled={restarting}
             onClick={() => setConfirming(true)}
           >
-            {restarting ? "Restarting…" : "Reclaim"}
+            {translateWebSource(locale, restarting ? "Restarting…" : "Reclaim")}
           </Button>
           {dismiss}
           <AlertDialog open={confirming} onOpenChange={setConfirming}>

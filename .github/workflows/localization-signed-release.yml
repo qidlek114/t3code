@@ -125,6 +125,9 @@ jobs:
           trap 'hdiutil detach "$mount" -force >/dev/null || true' EXIT
           app=$(find "$mount" -maxdepth 1 -name '*.app' -print -quit)
           [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" == com.qidlek114.t3code.i18n ]]
+          grep -qx 'owner: qidlek114' "$app/Contents/Resources/app-update.yml"
+          grep -qx 'repo: t3code' "$app/Contents/Resources/app-update.yml"
+          grep -qx 'updaterCacheDirName: t3code-i18n-updater' "$app/Contents/Resources/app-update.yml"
           codesign --verify --deep --strict "$app"
           codesign -dv --verbose=4 "$app" 2> "$RUNNER_TEMP/i18n-signature.txt"
           [[ "$(sed -n 's/^TeamIdentifier=//p' "$RUNNER_TEMP/i18n-signature.txt")" == "$EXPECTED_TEAM_ID" ]]
@@ -193,5 +196,6 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          printf 'English / 简体中文 / 繁體中文\n\nSource: %s\n\nSigned and notarized for Apple Silicon and Intel. Both packaged launch checks passed. Separate app identity and data directories; updates point to qidlek114/t3code.\n\nOfficial T3 Connect public configuration is included. Real account login, native passkeys, OAuth callbacks and an upgrade from the preceding signed version still require acceptance before publication.\n' "$SOURCE_SHA" > "$RUNNER_TEMP/i18n-release-notes.md"
+          printf 'English / 简体中文 / 繁體中文\n\nSource: %s\n\nSigned and notarized for Apple Silicon and Intel. Both packaged launch checks passed. Separate app identity and data directories; updates point to qidlek114/t3code.\n\n' "$SOURCE_SHA" > "$RUNNER_TEMP/i18n-release-notes.md"
+          cat docs/user/localization-preview.md >> "$RUNNER_TEMP/i18n-release-notes.md"
           gh release create "v$VERSION" release-publish/* --target "$SOURCE_SHA" --draft --prerelease --title "T3 Code I18n $VERSION" --notes-file "$RUNNER_TEMP/i18n-release-notes.md"

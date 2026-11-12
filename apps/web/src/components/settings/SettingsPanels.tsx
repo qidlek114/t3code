@@ -1066,12 +1066,17 @@ export function GeneralSettingsPanel() {
                   className="w-full sm:w-40"
                   aria-label={translateWebExtraSource(locale, "Quit shortcut behavior")}
                 >
-                  <SelectValue>{QUIT_CONFIRMATION_MODE_LABELS[settings.confirmQuit]}</SelectValue>
+                  <SelectValue>
+                    {translateWebSource(
+                      locale,
+                      QUIT_CONFIRMATION_MODE_LABELS[settings.confirmQuit],
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
                   {Object.entries(QUIT_CONFIRMATION_MODE_LABELS).map(([value, label]) => (
                     <SelectItem hideIndicator key={value} value={value}>
-                      {label}
+                      {translateWebSource(locale, label)}
                     </SelectItem>
                   ))}
                 </SelectPopup>
@@ -1368,12 +1373,14 @@ function ToolCallVisibilityRow() {
             className="w-full sm:w-40"
             aria-label={localizeUi("Tool calls in chat")}
           >
-            <SelectValue>{TOOL_CALL_VISIBILITY_LABELS[settings.toolCallVisibility]}</SelectValue>
+            <SelectValue>
+              {localizeUi(TOOL_CALL_VISIBILITY_LABELS[settings.toolCallVisibility])}
+            </SelectValue>
           </SelectTrigger>
           <SelectPopup align="end" alignItemWithTrigger={false}>
             {ToolCallVisibility.literals.map((value) => (
               <SelectItem key={value} value={value}>
-                {TOOL_CALL_VISIBILITY_LABELS[value]}
+                {localizeUi(TOOL_CALL_VISIBILITY_LABELS[value])}
               </SelectItem>
             ))}
           </SelectPopup>
@@ -1430,13 +1437,13 @@ function ScreenReaderAnnouncementsRow() {
             aria-label={localizeUi("Screen reader announcements")}
           >
             <SelectValue>
-              {SCREEN_READER_ANNOUNCEMENTS_LABELS[settings.screenReaderAnnouncements]}
+              {localizeUi(SCREEN_READER_ANNOUNCEMENTS_LABELS[settings.screenReaderAnnouncements])}
             </SelectValue>
           </SelectTrigger>
           <SelectPopup align="end" alignItemWithTrigger={false}>
             {ScreenReaderAnnouncements.literals.map((value) => (
               <SelectItem key={value} value={value}>
-                {SCREEN_READER_ANNOUNCEMENTS_LABELS[value]}
+                {localizeUi(SCREEN_READER_ANNOUNCEMENTS_LABELS[value])}
               </SelectItem>
             ))}
           </SelectPopup>
@@ -1847,7 +1854,7 @@ export function ThreadsSettingsPanel() {
               value={mixedAddProjectBaseDirectory ? "" : settings.addProjectBaseDirectory}
               onCommit={(next) => updateSettings({ addProjectBaseDirectory: next })}
               normalizeDraft={resolvePastedPath}
-              placeholder={mixedAddProjectBaseDirectory ? "Mixed" : "~/"}
+              placeholder={mixedAddProjectBaseDirectory ? localizeUi("Mixed") : "~/"}
               spellCheck={false}
               aria-label={translateWebExtraSource(locale, "Add project base directory")}
             />

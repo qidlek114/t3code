@@ -1,5 +1,6 @@
 import { managedUpdatesDenial } from "../../i18n/managedPolicyMessages";
 import { useI18n } from "../../i18n/WebI18nContext";
+import { translateWebSource } from "../../i18n/messages";
 import { readWebI18n } from "../../i18n/readWebI18n";
 import { type DesktopBridge, type DesktopUpdateState } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
@@ -199,7 +200,7 @@ export function SidebarUpdatePill() {
 }
 
 function SidebarUpdateControl() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const state = useDesktopUpdateState();
   // The desktop updates this machine, whose policy the primary environment reports.
   const updatesDenial = managedUpdatesDenial(usePrimaryManagedPolicy(), t);
@@ -466,7 +467,11 @@ function SidebarUpdateControl() {
   const updateButton = (
     <button
       type="button"
-      aria-label={idleTooltip?.detail ? `${tooltip}: ${idleTooltip.detail}` : tooltip}
+      aria-label={
+        idleTooltip?.detail
+          ? `${tooltip}: ${translateWebSource(locale, idleTooltip.detail)}`
+          : tooltip
+      }
       aria-disabled={isInteractionDisabled || undefined}
       className={cn(
         "inline-flex size-8 items-center justify-center rounded-full outline-hidden ring-ring transition-colors focus-visible:ring-2 focus-visible:ring-inset",
@@ -554,7 +559,9 @@ function SidebarUpdateControl() {
               {idleTooltip?.detail ? (
                 <div className="text-left">
                   <div className="font-medium">{idleTooltip.title}</div>
-                  <div className="text-muted-foreground">{idleTooltip.detail}</div>
+                  <div className="text-muted-foreground">
+                    {translateWebSource(locale, idleTooltip.detail)}
+                  </div>
                 </div>
               ) : (
                 <span className="whitespace-pre-line">{tooltip}</span>

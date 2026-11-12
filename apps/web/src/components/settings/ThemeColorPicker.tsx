@@ -4,6 +4,7 @@ import { isThemeColor, themeColorToHex, type ThemeColorRole } from "../../themeP
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../i18n/WebI18nContext";
 import { getThemeRoleTranslation } from "../../i18n/themeEditorMessages";
+import { translateWebSource } from "../../i18n/messages";
 import { hexToHsv, hsvToHex, type HsvColor } from "../../lib/color";
 import { ColorHueSlider, ColorSaturationValuePlane } from "../ui/color-picker";
 import { Input } from "../ui/input";
@@ -29,7 +30,7 @@ export function getThemeRoleLabel(role: ThemeColorRole, locale: ResolvedAppLocal
     updateSurface: "Update background",
   };
   const label = labels[role];
-  if (label) return label;
+  if (label) return translateWebSource(locale, label);
   return role.replace(/([A-Z])/g, " $1").replace(/^./, (character) => character.toUpperCase());
 }
 

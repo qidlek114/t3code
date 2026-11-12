@@ -1,4 +1,5 @@
 import { useI18n } from "../../i18n/WebI18nContext";
+import { translateWebSource } from "../../i18n/messages";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { ExternalLinkIcon, PackagePlusIcon, PaletteIcon, SearchIcon } from "lucide-react";
@@ -235,7 +236,7 @@ export function ThemeSearchSection({
   signal: AbortSignal;
   onInstalled: (themes: ReadonlyArray<ThemeDefinition>, context: { updated: boolean }) => void;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<OpenVsxThemeSort>("downloadCount");
   const [results, setResults] = useState<ReadonlyArray<OpenVsxThemeExtension> | null>(null);
@@ -379,9 +380,14 @@ export function ThemeSearchSection({
 
       <div className="sr-only" role="status">
         {isSearching
-          ? "Searching themes..."
+          ? translateWebSource(locale, "Searching themes...")
           : results
-            ? `${results.length} supported ${results.length === 1 ? "theme" : "themes"} found.`
+            ? t(
+                results.length === 1
+                  ? "localization.settings.themeFound"
+                  : "localization.settings.themesFound",
+                { count: results.length },
+              )
             : ""}
       </div>
 

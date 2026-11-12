@@ -72,13 +72,15 @@ export function BranchNamingSettings() {
               aria-label={translateWebSource(sourceLocale, "Worktree branch naming")}
             >
               <SelectValue>
-                {(value: BranchNamingMode | null) => (value === null ? "Mixed" : MODES[value])}
+                {(value: BranchNamingMode | null) =>
+                  translateWebSource(sourceLocale, value === null ? "Mixed" : MODES[value])
+                }
               </SelectValue>
             </SelectTrigger>
             <SelectPopup align="end" alignItemWithTrigger={false}>
               {BranchNamingMode.literals.map((mode) => (
                 <SelectItem key={mode} value={mode}>
-                  {MODES[mode]}
+                  {translateWebSource(sourceLocale, MODES[mode])}
                 </SelectItem>
               ))}
             </SelectPopup>
@@ -114,7 +116,11 @@ export function BranchNamingSettings() {
               onChange={() => {
                 prefixEdited.current = true;
               }}
-              placeholder={prefixMixed ? "Mixed" : "No prefix"}
+              placeholder={
+                prefixMixed
+                  ? translateWebSource(sourceLocale, "Mixed")
+                  : translateWebSource(sourceLocale, "No prefix")
+              }
               defaultValue={prefixMixed ? "" : settings.branchNamePrefix}
               onBlur={(event) => {
                 const value = event.target.value.trim();
@@ -155,8 +161,14 @@ export function BranchNamingSettings() {
               defaultValue={instructionsMixed ? "" : settings.branchNameInstructions}
               placeholder={
                 instructionsMixed
-                  ? "Mixed. Enter instructions to apply to all selected targets."
-                  : "Use julius/ followed by the issue ID and a short description."
+                  ? translateWebSource(
+                      sourceLocale,
+                      "Mixed. Enter instructions to apply to all selected targets.",
+                    )
+                  : translateWebSource(
+                      sourceLocale,
+                      "Use julius/ followed by the issue ID and a short description.",
+                    )
               }
               onBlur={(event) => {
                 const value = event.target.value.trim();

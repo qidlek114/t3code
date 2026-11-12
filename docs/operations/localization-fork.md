@@ -79,7 +79,7 @@ vp run dev --no-seed --home-dir /absolute/path/to/isolated-t3-home
 
 同一环境添加变量 `APPLE_TEAM_ID`。私钥只在签名步骤注入，不写进源码、缓存或发布产物。签名工作流不监听 PR，也不接受其他分支的签名请求。维护者仍需审查合并到 `localization` 的构建代码及依赖。
 
-签名版本采用官方支持的 `<基础版本>-nightly.<UTC日期>.<工作流运行号>` 格式。构建环境固定 `T3CODE_DESKTOP_UPDATE_REPOSITORY=qidlek114/t3code`，更新清单包含本 fork 的两种架构已签名 ZIP。草稿不会被自动更新发现。先验收云登录，并用两个连续签名版本验证更新、数据保留和签名一致性，再公开发布；不得直接更新到官方二进制，否则界面翻译会消失。
+签名版本采用官方支持的 `<基础版本>-nightly.<UTC日期>.<工作流运行号>` 格式。构建环境固定 `T3CODE_DESKTOP_UPDATE_REPOSITORY=qidlek114/t3code`，更新清单包含本 fork 的两种架构已签名 ZIP。草稿不会被自动更新发现。首个公开版本按预览版发布，明确披露 T3 Connect 尚未批准、相关功能暂不支持和首次自动升级尚未验收，详见[预览版限制](../user/localization-preview.md)。完整支持声明需要真实云登录验收，以及两个连续签名版本的更新、数据保留和签名一致性验证；不得直接更新到官方二进制，否则界面翻译会消失。
 
 ## 官方 T3 Connect
 

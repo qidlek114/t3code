@@ -79,7 +79,9 @@ export function CliCommandSettingsRow() {
         <div className="flex gap-2">
           {state.pathSetup && !state.pathSetup.added ? (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => run("addToPath")}>
-              {locale !== "en" ? chineseText(locale, "添加到 PATH") : "Add to PATH"}
+              {locale !== "en"
+                ? chineseText(locale, "添加到 PATH")
+                : translateWebSource(locale, "Add to PATH")}
             </Button>
           ) : null}
           <Button

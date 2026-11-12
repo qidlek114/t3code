@@ -75,7 +75,11 @@ function isVcsNotReady(item: VcsDiscoveryItem | SourceControlProviderDiscoveryIt
   return !isProviderDiscoveryItem(item) && !item.implemented;
 }
 
-function localizeInstallHint(hint: string, t: ReturnType<typeof useI18n>["t"]): string {
+function localizeInstallHint(
+  hint: string,
+  t: ReturnType<typeof useI18n>["t"],
+  locale: ReturnType<typeof useI18n>["locale"],
+): string {
   if (hint.startsWith("Install Git from")) {
     return t("sourceControl.hint.git");
   }
@@ -94,7 +98,7 @@ function localizeInstallHint(hint: string, t: ReturnType<typeof useI18n>["t"]): 
   if (hint.startsWith("Set T3CODE_BITBUCKET_EMAIL")) {
     return t("sourceControl.hint.bitbucket");
   }
-  return hint;
+  return translateWebSource(locale, hint);
 }
 
 function authPresentation(
@@ -177,11 +181,13 @@ function itemSummary({
   auth,
   authAccount,
   t,
+  locale,
 }: {
   readonly item: VcsDiscoveryItem | SourceControlProviderDiscoveryItem;
   readonly auth: SourceControlProviderAuth | null;
   readonly authAccount: string | null;
   readonly t: ReturnType<typeof useI18n>["t"];
+  readonly locale: ReturnType<typeof useI18n>["locale"];
 }) {
   if (isVcsNotReady(item)) {
     return <span>{t("sourceControl.summary.comingSoon", { provider: item.label })}</span>;
@@ -191,7 +197,7 @@ function itemSummary({
     return (
       <span>
         {t("sourceControl.summary.unavailable", {
-          hint: localizeInstallHint(item.installHint, t),
+          hint: localizeInstallHint(item.installHint, t, locale),
         })}
       </span>
     );
@@ -216,7 +222,9 @@ function itemSummary({
     if (!item.executable && auth.status === "unauthenticated") {
       return (
         <span>
-          {t("settingsControls.availableHint", { hint: localizeInstallHint(item.installHint, t) })}
+          {t("settingsControls.availableHint", {
+            hint: localizeInstallHint(item.installHint, t, locale),
+          })}
         </span>
       );
     }
@@ -249,7 +257,7 @@ function itemSummary({
       <span>
         {t("sourceControl.summary.verifyFailed", {
           provider: item.label,
-          hint: authDetail ?? localizeInstallHint(item.installHint, t),
+          hint: authDetail ?? localizeInstallHint(item.installHint, t, locale),
         })}
       </span>
     );
@@ -265,7 +273,7 @@ function DiscoveryItemRow({
   readonly item: VcsDiscoveryItem | SourceControlProviderDiscoveryItem;
   readonly children?: ReactNode;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const version = optionLabel(item.version);
   const enabled = isProviderDiscoveryItem(item)
     ? item.status === "available" && item.auth.status === "authenticated"
@@ -309,7 +317,7 @@ function DiscoveryItemRow({
               ) : null}
             </div>
             <p className="flex min-w-0 flex-wrap items-center gap-x-1 text-xs leading-normal text-muted-foreground/80">
-              {itemSummary({ item, auth, authAccount, t })}
+              {itemSummary({ item, auth, authAccount, t, locale })}
             </p>
           </div>
           <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto sm:justify-end">

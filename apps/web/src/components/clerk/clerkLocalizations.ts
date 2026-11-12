@@ -661,6 +661,7 @@ export const clerkLocalizations = {
       },
       start: {
         ...zhTW?.["signIn"]?.["start"],
+        actionLink__use_passkey: "改用通行金鑰",
         subtitle: "歡迎回來！請登入以繼續",
         title: "登入 {{applicationName}}",
       },

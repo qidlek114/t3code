@@ -1,4 +1,5 @@
 import { useSourceTranslation } from "~/i18n/useSourceTranslation";
+import { useI18n } from "~/i18n/WebI18nContext";
 import { LocalizedText } from "~/i18n/LocalizedText";
 import {
   type EnvironmentId,
@@ -210,7 +211,8 @@ export function TextGeneratorsSettings({
           <AlertDialogHeader>
             <AlertDialogTitle>
               <LocalizedText source={"Remove "} />
-              {removingConfig ? textGeneratorDisplayName(removingConfig) : ""}?
+              {removingConfig ? textGeneratorDisplayName(removingConfig) : ""}
+              <LocalizedText source={"?"} />
             </AlertDialogTitle>
             <AlertDialogDescription>
               <LocalizedText source={"This deletes the API key stored on "} />
@@ -275,6 +277,7 @@ function TextGeneratorWizard({
   readonly newId: (preset: TextGeneratorPreset) => ProviderInstanceId;
 }) {
   const localizeUi = useSourceTranslation();
+  const { t } = useI18n();
 
   const existing = editing === "new" ? null : editing.config;
   const [step, setStep] = useState(0);
@@ -341,13 +344,19 @@ function TextGeneratorWizard({
     >
       <WizardPopup>
         <WizardHeader
-          title={existing ? `Edit ${textGeneratorDisplayName(existing)}` : "Add a text generator"}
+          title={
+            existing
+              ? t("localization.settings.editGenerator", {
+                  name: textGeneratorDisplayName(existing),
+                })
+              : localizeUi("Add a text generator")
+          }
           description={localizeUi(
             "Writes thread titles, commit messages, and other short text without starting a coding agent. Your API key is stored on this environment.",
           )}
         >
           <WizardSteps
-            steps={STEPS}
+            steps={STEPS.map(localizeUi)}
             currentStep={step}
             isStepDisabled={(index) => index > step}
             onStepChange={setStep}
@@ -401,7 +410,7 @@ function TextGeneratorWizard({
                                 badgeContent="none"
                               />
                             )}
-                            {candidate.id === "custom" ? "Custom" : candidate.label}
+                            {candidate.id === "custom" ? localizeUi("Custom") : candidate.label}
                           </button>
                         );
                       })}
@@ -428,7 +437,7 @@ function TextGeneratorWizard({
                 ) : null}
                 <div className="grid gap-1.5">
                   <Label htmlFor="text-generator-key">
-                    {keyRequired ? "API key" : "API key (optional)"}
+                    {keyRequired ? localizeUi("API key") : localizeUi("API key (optional)")}
                   </Label>
                   <SecretSourceInput
                     id="text-generator-key"
@@ -455,7 +464,7 @@ function TextGeneratorWizard({
                       existing !== null
                         ? textGeneratorDisplayName(existing)
                         : preset.id === "custom"
-                          ? "e.g. My local model"
+                          ? localizeUi("e.g. My local model")
                           : preset.label
                     }
                     value={label}
@@ -474,7 +483,7 @@ function TextGeneratorWizard({
               <p className="text-sm text-muted-foreground">
                 {name}
                 <LocalizedText source={" is connected and lists "} />
-                {modelCount} {modelCount === 1 ? "model" : "models"}
+                {modelCount} {localizeUi(modelCount === 1 ? "model" : "models")}
                 <LocalizedText source={". Switch any of these to it, or keep what they use now."} />
               </p>
               {/* One grid for all rows, so pickers and Test buttons line up in columns. */}
@@ -485,7 +494,7 @@ function TextGeneratorWizard({
                     environmentId={environmentId}
                     providers={providers}
                     settingKey={task.key}
-                    label={task.label}
+                    label={localizeUi(task.label)}
                   />
                 ))}
               </div>
@@ -508,7 +517,11 @@ function TextGeneratorWizard({
               </Button>
               <Button onClick={() => void connect()} disabled={!canConnect || checking}>
                 {checking ? <Spinner /> : null}
-                {checking ? "Connecting" : existing ? "Save and continue" : "Connect"}
+                {checking
+                  ? localizeUi("Connecting")
+                  : existing
+                    ? localizeUi("Save and continue")
+                    : localizeUi("Connect")}
               </Button>
             </>
           ) : (
@@ -722,6 +735,8 @@ function TextGeneratorModelsDialog({
   readonly saved: Saved;
   readonly onClose: () => void;
 }) {
+  const localizeUi = useSourceTranslation();
+  const { t } = useI18n();
   const name = textGeneratorDisplayName(saved.config);
   const result = useTextGeneratorModels(environmentId, saved.id, saved.config);
   const [refreshing, setRefreshing] = useState(false);
@@ -732,7 +747,7 @@ function TextGeneratorModelsDialog({
     if ("error" in outcome) {
       toastManager.add({
         type: "error",
-        title: `Couldn't load ${name} models`,
+        title: t("localization.settings.modelsLoadError", { name }),
         description: outcome.error,
       });
     }
@@ -755,9 +770,14 @@ function TextGeneratorModelsDialog({
           <DialogDescription>
             {models === null
               ? error
-                ? "The model list couldn't load."
-                : "Loading the model list."
-              : `${models.length} ${models.length === 1 ? "model" : "models"} available. Pick one in a text generation model picker.`}
+                ? localizeUi("The model list couldn't load.")
+                : localizeUi("Loading the model list.")
+              : t(
+                  models.length === 1
+                    ? "localization.settings.modelAvailable"
+                    : "localization.settings.modelsAvailable",
+                  { count: models.length },
+                )}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>

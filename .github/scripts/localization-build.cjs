@@ -28,6 +28,7 @@ const replacements = {
     ],
   ],
   "scripts/build-desktop-artifact.ts": [
+    ['name: "t3code",', 'name: "t3code-i18n",'],
     [
       'const DESKTOP_APP_ID = "com.t3tools.t3code"',
       'const DESKTOP_APP_ID = "com.qidlek114.t3code.i18n"',

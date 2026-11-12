@@ -233,7 +233,7 @@ function BackgroundActivityAdvancedDialog({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <IntervalSecondsField
-                  label="provider health interval"
+                  label={localizeUi("provider health interval")}
                   value={providerHealthRefreshIntervalSeconds}
                   min={0}
                   step={PROVIDER_HEALTH_INTERVAL_STEP_SECONDS}
@@ -265,7 +265,7 @@ function BackgroundActivityAdvancedDialog({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <IntervalSecondsField
-                  label="active host power interval"
+                  label={localizeUi("active host power interval")}
                   value={hostPowerMonitorActiveIntervalSeconds}
                   min={5}
                   step={5}
@@ -300,7 +300,7 @@ function BackgroundActivityAdvancedDialog({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <IntervalSecondsField
-                  label="idle host power interval"
+                  label={localizeUi("idle host power interval")}
                   value={hostPowerMonitorIdleIntervalSeconds}
                   min={5}
                   step={30}

@@ -923,6 +923,7 @@ function ScheduledTaskThreadLink({
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
 }) {
+  const localizeUi = useSourceTranslation();
   const ref = scopeThreadRef(environmentId, threadId);
   const title = useQuietThreadShell(ref)?.title.trim();
   return (
@@ -931,7 +932,7 @@ function ScheduledTaskThreadLink({
       params={buildThreadRouteParams(ref)}
       className="max-w-64 truncate underline underline-offset-2 hover:text-foreground"
     >
-      {title || "Open thread"}
+      {title || localizeUi("Open thread")}
     </Link>
   );
 }
@@ -1022,7 +1023,11 @@ function WebhookDeliveriesDialog({
                 </p>
               ) : null}
               <DeliveryBlock
-                title={selected.pendingWindow ? "Scheduled run" : "Prompt sent to the agent"}
+                title={
+                  selected.pendingWindow
+                    ? translateWebSource(sourceLocale, "Scheduled run")
+                    : translateWebSource(sourceLocale, "Prompt sent to the agent")
+                }
               >
                 {selected.renderedPrompt ??
                   (selected.pendingWindow
@@ -1051,7 +1056,12 @@ function WebhookDeliveriesDialog({
                   {selected.query}
                 </DeliveryBlock>
               ) : null}
-              <DeliveryBlock title={selected.bodyTruncated ? "Body (truncated)" : "Body"}>
+              <DeliveryBlock
+                title={translateWebExtraSource(
+                  sourceLocale,
+                  selected.bodyTruncated ? "Body (truncated)" : "Body",
+                )}
+              >
                 {selected.body || translateWebSource(sourceLocale, "(empty)")}
               </DeliveryBlock>
             </div>
@@ -1211,7 +1221,7 @@ function WebhookEndpointField({
           onClick={() => copyToClipboard(url, undefined)}
         >
           <CopyIcon />
-          {isCopied ? "Copied" : "Copy"}
+          {translateWebSource(sourceLocale, isCopied ? "Copied" : "Copy")}
         </Button>
         <Button
           size="sm"
@@ -1308,7 +1318,7 @@ function ScheduledTaskDestination({
 }) {
   const localizeUi = useSourceTranslation();
 
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   const tx = (source: string) => translateWebSource(locale, source);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -1321,10 +1331,10 @@ function ScheduledTaskDestination({
   const thread = shell ?? family.data?.threads.find((row) => row.id === threadId);
   const currentLabel =
     ref !== null
-      ? thread?.title.trim() || `Thread ${ref.threadId}`
+      ? thread?.title.trim() || t("localization.settings.threadWithId", { id: ref.threadId })
       : threadMode === "new_thread"
-        ? "New thread each run"
-        : "Started by the first run";
+        ? localizeUi("New thread each run")
+        : localizeUi("Started by the first run");
   const shells = useVisibleThreadShells(open);
   // Mounts older settled threads matching the query, which shells may leave out.
   useThreadSearch(open && projectId ? [environmentId] : [], query, {
@@ -1365,12 +1375,12 @@ function ScheduledTaskDestination({
           onValueChange={(value) => onThreadModeChange(value as ScheduledTaskThreadMode)}
         >
           <SelectTrigger size="sm" id="scheduled-task-destination">
-            <SelectValue>{THREAD_MODE_LABELS[threadMode]}</SelectValue>
+            <SelectValue>{localizeUi(THREAD_MODE_LABELS[threadMode])}</SelectValue>
           </SelectTrigger>
           <SelectPopup>
             {(Object.keys(THREAD_MODE_LABELS) as ScheduledTaskThreadMode[]).map((mode) => (
               <SelectItem key={mode} value={mode}>
-                {THREAD_MODE_LABELS[mode]}
+                {localizeUi(THREAD_MODE_LABELS[mode])}
               </SelectItem>
             ))}
           </SelectPopup>
@@ -1402,7 +1412,7 @@ function ScheduledTaskDestination({
                 ? "scheduled-task-destination-thread"
                 : "scheduled-task-destination"
             }
-            aria-label={onThreadModeChange ? "Destination thread" : undefined}
+            aria-label={onThreadModeChange ? localizeUi("Destination thread") : undefined}
             disabled={disabled}
             render={<Button variant="outline" size="sm" />}
             className="w-full justify-between"
@@ -1426,10 +1436,11 @@ function ScheduledTaskDestination({
                 <ComboboxItem key={value} index={index} value={value}>
                   <span className="block truncate">
                     {value === NEW_THREAD_DESTINATION
-                      ? "New thread each run"
+                      ? localizeUi("New thread each run")
                       : value === threadId
                         ? currentLabel
-                        : threads.find((row) => row.id === value)?.title || "Untitled thread"}
+                        : threads.find((row) => row.id === value)?.title ||
+                          localizeUi("Untitled thread")}
                   </span>
                 </ComboboxItem>
               ))}
@@ -1438,7 +1449,7 @@ function ScheduledTaskDestination({
         </Combobox>
       ) : null}
       <div className="space-y-1 text-sm">
-        <p className="text-muted-foreground">{detail}</p>
+        <p className="text-muted-foreground">{localizeUi(detail)}</p>
         {threadMode !== "new_thread" ? (
           <p className="text-muted-foreground">
             <LocalizedText source={"Deleting the thread also deletes this task."} />
@@ -1732,7 +1743,8 @@ function ScheduledTaskEditorForm({
                       kind={resolveEnvironmentMachineKind(environment?.serverConfig ?? null)}
                       className="size-4"
                     />
-                    {environment?.label ?? "Unavailable environment"}
+                    {environment?.label ??
+                      translateWebSource(sourceLocale, "Unavailable environment")}
                   </span>
                 </SelectValue>
               </SelectTrigger>

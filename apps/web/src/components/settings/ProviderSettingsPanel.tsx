@@ -1,5 +1,6 @@
 import { chineseText } from "@t3tools/shared/chineseUi";
 import { translateWebSource } from "../../i18n/messages";
+import { translateWebExtraSource } from "../../i18n/webExtraMessages";
 import { SettingsGroup } from "./SettingsGroup";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import {
@@ -1217,7 +1218,7 @@ export function EnvironmentProviderSettings({
               )}
             >
               <IntervalSecondsField
-                label="provider health check interval"
+                label={translateWebExtraSource(translationLocale, "provider health check interval")}
                 value={providerHealthRefreshIntervalSeconds}
                 min={0}
                 step={PROVIDER_HEALTH_INTERVAL_STEP_SECONDS}

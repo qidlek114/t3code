@@ -313,7 +313,7 @@ function MicrophonePlayback({
         <Button
           size="icon-sm-pill"
           variant="ghost"
-          aria-label={playing ? "Pause recording" : "Play recording"}
+          aria-label={playing ? localizeUi("Pause recording") : localizeUi("Play recording")}
           onClick={() => void togglePlayback()}
         >
           {playing ? <PauseIcon /> : <PlayIcon />}

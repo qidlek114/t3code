@@ -1,5 +1,14 @@
 # T3 Code
 
+> [!IMPORTANT]
+> **T3 Code I18n — 社区多语言预览版 / community multilingual preview**
+>
+> English、简体中文、繁體中文。macOS 安装包请从[本 fork 的 Releases](https://github.com/qidlek114/t3code/releases)下载；下方保留的是上游项目说明。
+>
+> **尚未获得官方 T3 Connect 对本 fork 独立应用身份的接入批准。本预览版暂不支持 T3 Connect 及依赖它的云端功能。** 原生通行密钥和独立 SSO 回跳尚未接入，其余云端流程未完成真实账号验收；界面中保留入口不代表可用。详见[功能限制、安装与更新](docs/user/localization-preview.md)和[官方接入申请](https://github.com/pingdotgg/t3code/discussions/34667)。
+>
+> Official T3 Connect approval is pending for this fork's independent app identity. T3 Connect is unsupported in this preview; native passkeys and independent SSO callbacks are not integrated, and other cloud flows have not passed real-account acceptance. See the [feature limitations](docs/user/localization-preview.md).
+
 T3 Code is an "agent harness control surface". It enables control of the agents on your machine with a best-in-class mobile app ([iOS](https://apps.apple.com/us/app/t3-code-remote-claude-more/id6787819824), [Android](https://play.google.com/store/apps/details?id=com.t3tools.t3code)), [web app](https://app.t3.codes) and [Electron-based desktop app](https://t3.codes).
 
 Works with your subscriptions on Claude Code, Codex, Cursor, Grok Build, OpenCode, Google Antigravity, and fx. If they're set up on your computer, T3 Code can control them.
