@@ -11,11 +11,11 @@
 [下載 macOS 版](https://github.com/qidlek114/t3code/releases) · [回報問題](https://github.com/qidlek114/t3code/issues/new/choose) · [官方專案](https://github.com/pingdotgg/t3code)
 
 > [!WARNING]
-> **非官方社群預覽版。本版本暫不支援 T3 Connect。** 本 fork 的獨立應用程式身分尚未獲得官方 T3 Connect 接入核准。介面中保留雲端功能入口不代表可用，請先閱讀下方限制。
+> **非官方社群版本。本版本暫不支援 T3 Connect。** 本 fork 的獨立應用程式身分尚未獲得官方 T3 Connect 接入核准。介面中保留雲端功能入口不代表可用，請先閱讀下方限制。
 
 ## 安裝
 
-1. 開啟本 fork 的 [Releases](https://github.com/qidlek114/t3code/releases)，選擇最新的**已公開預覽版**。以該 Release 列出的語言為準；原始碼新增語言不會改變已發布的安裝檔。
+1. 開啟本 fork 的 [Releases](https://github.com/qidlek114/t3code/releases)，選擇最新的**已公開正式版**。以該 Release 列出的語言為準；原始碼新增語言不會改變已發布的安裝檔。
 2. 下載適合這台 Mac 的 `.dmg`：**M 系列晶片選 `arm64`，Intel 晶片選 `x64`**。
 3. 開啟磁碟映像，將 **T3 Code I18n** 拖入「應用程式」。簽署版本附有 Apple Developer ID 簽章、公證、ZIP 更新檔和 SHA-256 校驗檔。
 4. 在執行伺服器的電腦上安裝並登入程式開發服務供應商。供應商訂閱與 API 用量費用和本專案分開。
@@ -36,13 +36,15 @@
 | macOS 原生通行金鑰登入                                                             | 無法使用：獨立應用程式身分尚未與官方登入網域建立關聯。       |
 | 瀏覽器 SSO / OAuth 返回本應用程式                                                  | 暫不支援：獨立回呼尚未核准，可能登入失敗或返回官方應用程式。 |
 | 其他 T3 Connect 登入，包括電子郵件、密碼、驗證碼                                   | 尚未完成真實帳號驗收，不作為受支援的替代登入方式。           |
-| 帳號綁定的雲端環境、透過 T3 Connect 跨裝置存取、官方託管通道                       | 本預覽版暫不支援。                                           |
+| 帳號綁定的雲端環境、透過 T3 Connect 跨裝置存取、官方託管通道                       | 本 fork 暫不支援。                                           |
 | 透過上述通道使用 MCP、Relay Webhook、離線 Webhook 保留、T3 Chat 帳號綁定與相關額度 | 依賴雲端服務的流程暫不支援或尚未驗收。                       |
 | 本機專案、本機供應商帳號、SSH / 區域網路 / Tailscale 直連                          | 不依賴 T3 Connect；仍需分別設定並完成驗證。                  |
 
-介面暫時保留雲端功能入口。上表區分「尚未接入」與「尚未驗收」，並不表示每一項雲端流程都已實測失敗。請見[完整預覽版說明](../docs/user/localization-preview.md)與[官方接入申請](https://github.com/pingdotgg/t3code/discussions/34667)。
+介面暫時保留雲端功能入口。上表區分「尚未接入」與「尚未驗收」，並不表示每一項雲端流程都已實測失敗。請見[完整功能限制](../docs/user/localization-preview.md)與[官方接入申請](https://github.com/pingdotgg/t3code/discussions/34667)。
 
 ## 更新與共存
+
+今後**只跟隨官方正式版發布**，略過 Nightly、Preview 與 RC。歷史預覽版保留 **Pre-release** 標記。正式版使用穩定更新管道；舊預覽版使用者請手動安裝首個正式版 DMG。發布管道變更不表示 T3 Connect 已獲批准，上述功能限制繼續適用。如果 Releases 只有 **Pre-release**，表示本 fork 的正式安裝檔尚未發布。
 
 應用程式使用獨立身分與資料目錄，可與官方版共存。簽署版本的更新來源指向 **qidlek114/t3code**，不會使用覆蓋翻譯的官方安裝檔。**Pre-release** 是公開預覽版；**Draft** 是尚未公開的草稿，不會由自動更新發現。連續兩個公開版本之間的完整自動升級仍需驗收。
 

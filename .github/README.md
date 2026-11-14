@@ -11,11 +11,11 @@ A community multilingual edition of [T3 Code](https://github.com/pingdotgg/t3cod
 [Download for macOS](https://github.com/qidlek114/t3code/releases) · [Report a problem](https://github.com/qidlek114/t3code/issues/new/choose) · [Upstream project](https://github.com/pingdotgg/t3code)
 
 > [!WARNING]
-> **Unofficial community preview. T3 Connect is not supported in this release.** This fork's independent app identity has not received official T3 Connect approval. A visible cloud entry point does not mean the feature works. See the limitations below before installing.
+> **Unofficial community edition. T3 Connect is not supported in this release.** This fork's independent app identity has not received official T3 Connect approval. A visible cloud entry point does not mean the feature works. See the limitations below before installing.
 
 ## Install
 
-1. Open this fork's [Releases](https://github.com/qidlek114/t3code/releases) and choose the newest **published** preview. Read that release's language list; existing downloads do not gain new languages when source code changes.
+1. Open this fork's [Releases](https://github.com/qidlek114/t3code/releases) and choose the newest **published stable release**. If only **Pre-release** entries are listed, a stable fork build is not available yet. Read that release's language list; source changes do not alter existing downloads.
 2. Download the `.dmg` for your Mac: **`arm64` for Apple Silicon (M-series)** or **`x64` for Intel**.
 3. Open the disk image and drag **T3 Code I18n** to Applications. Signed releases include Apple Developer ID signing and notarization, ZIP updates and SHA-256 checksums.
 4. Configure and sign in to a supported coding provider on the computer running the server. Provider subscriptions and API usage are separate from this project.
@@ -36,13 +36,15 @@ Your source code, project names, paths, messages, terminal output and model resp
 | Native macOS passkey sign-in                                                                                             | Unavailable: the independent app identity is not associated with the official login domain.            |
 | Browser SSO / OAuth return to this app                                                                                   | Unsupported: the independent callback is not approved; sign-in may fail or return to the official app. |
 | Other T3 Connect account sign-in, including email/password/verification codes                                            | Not accepted with a real account; not offered as a supported workaround.                               |
-| Account-linked cloud environments, cross-device access through T3 Connect, official managed tunnels                      | Unsupported in this preview.                                                                           |
+| Account-linked cloud environments, cross-device access through T3 Connect, official managed tunnels                      | Unsupported in this fork.                                                                              |
 | MCP access through those tunnels, Relay Webhooks and offline webhook holding, T3 Chat account linking and related quotas | Dependent cloud workflows are unsupported or unverified.                                               |
 | Local projects, local provider accounts, direct SSH / LAN / Tailscale connections                                        | Do not require T3 Connect; each connection still needs its own authentication and setup.               |
 
-The cloud entry points remain in the interface. This table distinguishes missing integration from flows that have not been accepted; it does not claim every cloud flow was tested and failed. Read the [detailed preview limitations](../docs/user/localization-preview.md) and [official integration request](https://github.com/pingdotgg/t3code/discussions/34667).
+The cloud entry points remain in the interface. This table distinguishes missing integration from flows that have not been accepted; it does not claim every cloud flow was tested and failed. Read the [detailed feature limitations](../docs/user/localization-preview.md) and [official integration request](https://github.com/pingdotgg/t3code/discussions/34667).
 
 ## Updates and coexistence
+
+Future releases follow **official stable releases only**. Nightly, preview and release-candidate versions are skipped. Historical previews retain their **Pre-release** labels. Stable builds use the stable update feed; users of an older preview should install the first stable DMG manually. The T3 Connect limitations above remain independent of the release channel.
 
 The app has its own identity and data directories and can coexist with the official app. Signed update metadata points to **qidlek114/t3code**, not official binaries that would remove the translations. **Pre-release** is a public preview; **Draft** is unpublished and is not offered by the updater. An end-to-end upgrade between consecutive public versions still needs acceptance.
 

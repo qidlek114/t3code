@@ -41,3 +41,5 @@ jobs:
           vp run check:changed upstream/main --concurrency 2
       - name: Check build isolation against upstream drift
         run: node .github/scripts/localization-build.cjs
+      - name: Check stable-only release policy
+        run: node --test .github/scripts/localization-stable-release.test.cjs

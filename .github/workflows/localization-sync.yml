@@ -39,8 +39,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tag=$(gh api repos/pingdotgg/t3code/releases/latest --jq .tag_name)
-          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Unexpected upstream stable tag" >&2; exit 1; }
+          gh api repos/pingdotgg/t3code/releases/latest > "$RUNNER_TEMP/official-release.json"
+          version=$(node .github/scripts/localization-stable-release.cjs metadata "$RUNNER_TEMP/official-release.json")
+          tag="v$version"
           branch="sync/upstream-$tag"
           git fetch --no-tags https://github.com/pingdotgg/t3code.git "refs/tags/$tag"
           upstream=$(git rev-parse 'FETCH_HEAD^{commit}')

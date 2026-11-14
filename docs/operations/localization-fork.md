@@ -4,13 +4,16 @@
 
 ## 同步官方源码
 
-`upstream` 指向 `pingdotgg/t3code`，`origin` 指向 `qidlek114/t3code`。保留官方提交历史，在 `localization` 上合并上游；不要把本分支重置为官方分支。官方大幅改动界面时仍可能有合并冲突，新文案也需要补译。
+只同步和发布官方已公开的正式 Release：`draft=false`、`prerelease=false`，标签为 `vX.Y.Z`。跳过 Nightly、Preview、RC 和未发布的 `main` 提交。`upstream` 指向 `pingdotgg/t3code`，`origin` 指向 `qidlek114/t3code`。保留官方提交历史，在 `localization` 上合并正式标签；不要把本分支重置为官方分支。官方大幅改动界面时仍可能有合并冲突，新文案也需要补译。
 
 ```sh
-git fetch upstream --tags
+gh api repos/pingdotgg/t3code/releases/latest > /path/to/official-release.json
+version=$(node .github/scripts/localization-stable-release.cjs metadata /path/to/official-release.json)
+git fetch --no-tags upstream "refs/tags/v$version:refs/remotes/upstream/stable" main:refs/remotes/upstream/main
 git switch localization
-git switch -c sync/upstream-<版本>
-git merge <官方 tag 或 upstream/main>
+git switch -c "sync/upstream-v$version"
+git merge refs/remotes/upstream/stable
+node .github/scripts/localization-stable-release.cjs source /path/to/official-release.json
 vp install --frozen-lockfile
 vp run check:changed upstream/main
 node .github/scripts/localization-build.cjs
@@ -60,11 +63,11 @@ vp run dev --no-seed --home-dir /absolute/path/to/isolated-t3-home
 
 ## macOS 构建、签名与 Releases
 
-`Build multilingual Mac preview` 使用 GitHub 托管的 `macos-15`（Apple Silicon）和 `macos-15-intel` 构建两种架构，不需要部署自托管 runner。流程依次执行变更检查、独立标识预检查、DMG/ZIP 打包及合成会话启动测试；两种架构都通过后才创建草稿预发布，并附上 SHA-256 校验值。
+旧的 `Build multilingual Mac preview` 未签名预览工作流已移除。历史预览 Release 保留原有标记，不改名充当正式版。本流程不使用继承自上游的预览发布入口；上游工作流文件保留供同步。
 
-这个预览工作流生成未签名包，默认不公开发布，也不提供自动更新清单。macOS 可能阻止打开下载的未签名应用。
+`Build signed multilingual Mac stable release` 只能从本 fork 的 `localization` 分支手动启动。首先校验官方最新正式 Release、提交历史和版本号；本分支与官方 `main` 的共同基线必须正好是该正式标签，不能混入标签之后的上游提交。当前源码若比最新正式版超前，等待后续正式标签包含这些改动并完成同步后再发布，不通过改名或回退源码绕过检查。已有同名标签时停止，避免覆盖发布归档。
 
-`Build signed multilingual Mac release` 只能从本 fork 的 `localization` 分支手动启动。它使用相同的两种 GitHub 托管 macOS runner，执行 Apple 签名、公证、签名身份校验、Gatekeeper 检查和合成会话启动测试，最后合并两种架构的更新清单并创建草稿预发布。凭据缺失或任一验证失败都会停止，不会回退到未签名包。
+通过后使用 GitHub 托管的 `macos-15`（Apple Silicon）和 `macos-15-intel`（Intel），不需要自托管 runner。流程执行变更检查、独立标识预检查、DMG/ZIP 打包、Apple 签名与公证、签名身份校验、Gatekeeper 检查和合成会话启动测试，最后合并两种架构的稳定更新清单并创建**正式版草稿**。凭据缺失或任一验证失败都会停止，不会回退到未签名包。
 
 签名需要 Apple Developer 身份、Developer ID Application 证书及私钥、证书密码、用于公证的 App Store Connect API 凭据，以及启用了 Associated Domains 且与独立 bundle ID 匹配的 Developer ID provisioning profile。官方证书无法从开源仓库取得。
 
@@ -81,11 +84,13 @@ vp run dev --no-seed --home-dir /absolute/path/to/isolated-t3-home
 
 同一环境添加变量 `APPLE_TEAM_ID`。私钥只在签名步骤注入，不写进源码、缓存或发布产物。签名工作流不监听 PR，也不接受其他分支的签名请求。维护者仍需审查合并到 `localization` 的构建代码及依赖。
 
-签名版本采用官方支持的 `<基础版本>-nightly.<UTC日期>.<工作流运行号>` 格式。构建环境固定 `T3CODE_DESKTOP_UPDATE_REPOSITORY=qidlek114/t3code`，更新清单包含本 fork 的两种架构已签名 ZIP。草稿不会被自动更新发现。首个公开版本按预览版发布，明确披露 T3 Connect 尚未批准、相关功能暂不支持和首次自动升级尚未验收，详见[预览版限制](../user/localization-preview.md)。完整支持声明需要真实云登录验收，以及两个连续签名版本的更新、数据保留和签名一致性验证；不得直接更新到官方二进制，否则界面翻译会消失。
+签名版本使用对应官方正式版本号 `X.Y.Z`，不添加 `nightly` 或 `preview` 后缀。构建环境固定 `T3CODE_DESKTOP_UPDATE_REPOSITORY=qidlek114/t3code`，`latest-mac.yml` 包含本 fork 的两种架构已签名 ZIP。草稿不标为预发布，也不会被自动更新发现；核对安装包、校验值和发布说明并完成验收后再公开。正式版标签表示跟随正式上游，不代表 T3 Connect 已批准或译文已完成母语审校。相关限制仍须在 Release 中披露，详见[安装与功能限制](../user/localization-preview.md)。
+
+旧预览版使用不同更新渠道，首个正式版推荐手动安装 DMG。连续正式版之间仍需完成自动更新、数据保留和签名一致性验收，不能仅凭更新清单存在宣称已通过；不得直接更新到官方二进制，否则界面翻译会消失。
 
 ## 官方 T3 Connect
 
-两种构建工作流都会把官方 `.env.example` 复制为一次性构建目录的 `.env`。其中只有官方明确公开的 Clerk publishable key、JWT template 名称、CLI OAuth client ID 和 relay URL，不使用官方后台私钥，也不另建云服务。配置必须在 web、server 和 desktop 编译之前载入。
+签名构建工作流把官方 `.env.example` 复制为一次性构建目录的 `.env`。其中只有官方明确公开的 Clerk publishable key、JWT template 名称、CLI OAuth client ID 和 relay URL，不使用官方后台私钥，也不另建云服务。配置必须在 web、server 和 desktop 编译之前载入。
 
 应用内的 Clerk 登录和账号界面使用 `@clerk/localizations` 的五种语言包，与主界面共享语言偏好和系统语言订阅。`clerkLocalizations.ts` 补充当前语言包缺失的登录、通行密钥、多因素验证、个人资料和认证错误词条。独立浏览器打开的官方托管页面由官方管理，无法通过本地语言选项修改。
 

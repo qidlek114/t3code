@@ -1,4 +1,4 @@
-# T3 Code I18n 预览版
+# T3 Code I18n 安装与功能限制
 
 这是社区维护的 T3 Code 多语言 fork，提供 English、简体中文、繁體中文、日本語和한국어，可在设置中切换或跟随系统。本版本不是官方发行版，也不代表官方认可或提供支持。
 
@@ -10,9 +10,9 @@
 
 ## T3 Connect 暂不支持
 
-**本 fork 尚未获得官方 T3 Connect 对独立应用身份的接入批准，因此本预览版暂不提供 T3 Connect 使用支持。** 申请见[官方讨论 #34667](https://github.com/pingdotgg/t3code/discussions/34667)。Apple 签名、公证通过不等于官方云服务已批准接入。
+**本 fork 尚未获得官方 T3 Connect 对独立应用身份的接入批准，因此本 fork 暂不提供 T3 Connect 使用支持。** 申请见[官方讨论 #34667](https://github.com/pingdotgg/t3code/discussions/34667)。Apple 签名、公证通过不等于官方云服务已批准接入。
 
-| 功能                                                                            | 本预览版状态及具体限制                                                                                     |
+| 功能                                                                            | 本 fork 状态及具体限制                                                                                     |
 | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | macOS 原生通行密钥注册和登录                                                    | 不可用：官方登录域名尚未关联本 fork 的 Apple Team ID 与 Bundle ID。                                        |
 | 系统浏览器中的 Apple、Google、GitHub、Microsoft 等 SSO 登录并返回本应用         | 不支持：独立回调地址尚未获准。当前回跳可能无法返回本应用，或打开已安装的官方应用，请勿依赖此路径。         |
@@ -23,15 +23,17 @@
 | 经官方 Relay 转发 Webhook，以及环境离线时暂存 Webhook                           | 暂不支持：这些路径依赖 T3 Connect 托管的环境连接。本地或直接访问环境的 Webhook 不在此限制内。              |
 | 在本 fork 中绑定 T3 Chat 账号以提高 T3 Connect 隧道额度，以及管理云端账号或设备 | 暂不支持：依赖官方账号链路，未完成验收。                                                                   |
 
-“暂不支持”是本预览版的支持范围，并不表示以上每条路径都已实际测试失败。当前仍保留上游的云端配置和部分入口，方便后续接入；请不要通过这些入口判断功能已经可用，也不要依赖它们开展工作。官方批准后仍需完成回调配置及真实账号测试，再在后续版本宣布开放。
+“暂不支持”是本 fork 的支持范围，并不表示以上每条路径都已实际测试失败。当前仍保留上游的云端配置和部分入口，方便后续接入；请不要通过这些入口判断功能已经可用，也不要依赖它们开展工作。官方批准后仍需完成回调配置及真实账号测试，再在后续版本宣布开放。
 
 ## 不依赖 T3 Connect 的功能
 
 本地项目、会话、终端、Git 和工作树，以及通过本地 Codex、Claude 等提供商执行任务，不依赖 T3 Connect 账号。提供商自己的 ChatGPT、Claude 或 API 登录与 T3 Connect 是不同的认证路径。
 
-SSH、局域网地址和 Tailscale HTTPS 直连也不需要 T3 Connect；仍需自行配置网络、环境和配对权限。保留这些上游能力不代表每种网络、提供商及真实账号组合都已在本预览版逐项验收。
+SSH、局域网地址和 Tailscale HTTPS 直连也不需要 T3 Connect；仍需自行配置网络、环境和配对权限。保留这些上游能力不代表每种网络、提供商及真实账号组合都已在本 fork 逐项验收。
 
 ## 翻译与更新范围
+
+今后只跟随官方正式版发布，跳过 Nightly、Preview 和 RC。历史预览版继续保留 Pre-release 标记，不会改名为正式版；如果 Releases 中只有预览版，则尚无正式安装包。旧预览版用户请手动下载安装首个正式版 DMG。正式发布不改变上述云功能支持范围。
 
 支持英文、简体中文、繁体中文、日语和韩语，包含设置、主界面及原生桌面菜单。日语、韩语为新增预览译文，常用界面和插值模板已校正，尚未经完整母语审校。模型回复、终端输出、项目文件、第三方网页和提供商的原始错误保留原文。官方后续新增界面仍可能出现需要补译的英文。
 
@@ -39,12 +41,12 @@ SSH、局域网地址和 Tailscale HTTPS 直连也不需要 T3 Connect；仍需�
 
 ## English: unavailable and unverified cloud features
 
-This is a community multilingual preview, not an official T3 Code distribution. Approval for the fork's independent macOS identity is [pending](https://github.com/pingdotgg/t3code/discussions/34667). Apple signing and notarization do not grant T3 Connect access approval.
+This is a community multilingual edition, not an official T3 Code distribution. Approval for the fork's independent macOS identity is [pending](https://github.com/pingdotgg/t3code/discussions/34667). Apple signing and notarization do not grant T3 Connect access approval.
 
 - Native macOS passkey registration and sign-in are unavailable: the official credential domain does not associate this fork's signing identity.
 - Browser SSO callbacks for Apple, Google, GitHub, Microsoft and other providers are unsupported. The independent callback is not allowlisted; a callback may fail or open the official app.
 - Email/password/one-time-code login has not passed real-account acceptance and is not offered as a supported feature.
-- Account-linked environment discovery, registration and connections, official web/mobile access through T3 Connect, managed public tunnels, and MCP access through those tunnels are unsupported in this preview.
+- Account-linked environment discovery, registration and connections, official web/mobile access through T3 Connect, managed public tunnels, and MCP access through those tunnels are unsupported in this fork.
 - Relay-forwarded and offline-held webhooks, T3 Chat account linking for tunnel limits, and cloud account/device management are unsupported and unverified.
 
-These are preview support limits, not claims that every flow was tested and failed. Some upstream cloud entry points remain visible. Local providers and projects, SSH, LAN and Tailscale direct connections do not require T3 Connect; each still requires its own setup and permissions. Updates use this fork's signed releases. An end-to-end automatic upgrade between consecutive public versions has not yet been accepted. Japanese and Korean are new preview translations and have not received exhaustive native-speaker review.
+These are fork support limits, not claims that every flow was tested and failed. Some upstream cloud entry points remain visible. Local providers and projects, SSH, LAN and Tailscale direct connections do not require T3 Connect; each still requires its own setup and permissions. Future releases follow official stable releases only, skipping Nightly, Preview and RC. Historical previews keep their labels. Install the first stable DMG manually when migrating from a preview. Updates use this fork's signed stable releases. An end-to-end automatic upgrade between consecutive public versions has not yet been accepted. Japanese and Korean are new preview translations and have not received exhaustive native-speaker review.

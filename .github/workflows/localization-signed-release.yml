@@ -1,4 +1,4 @@
-name: Build signed multilingual Mac release
+name: Build signed multilingual Mac stable release
 
 on:
   workflow_dispatch:
@@ -20,6 +20,7 @@ jobs:
       CHECK_CHANGED_TEST_BATCH_SIZE: "24"
     outputs:
       version: ${{ steps.version.outputs.version }}
+      upstream_sha: ${{ steps.version.outputs.upstream_sha }}
     steps:
       - name: Check out public source without submodule credential cleanup
         shell: bash
@@ -33,20 +34,30 @@ jobs:
           git fetch --no-tags origin "$CHECKOUT_REF"
           git sparse-checkout set --no-cone '/*' '!/.repos/' '!/apps/mobile/modules/t3-terminal/Vendor/**/*.a'
           git checkout --detach FETCH_HEAD
+      - id: version
+        name: Require a published official stable source
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api repos/pingdotgg/t3code/releases/latest > "$RUNNER_TEMP/official-release.json"
+          version=$(node .github/scripts/localization-stable-release.cjs metadata "$RUNNER_TEMP/official-release.json")
+          git fetch --no-tags https://github.com/pingdotgg/t3code.git "refs/tags/v$version:refs/remotes/upstream/stable" main:refs/remotes/upstream/main
+          node .github/scripts/localization-stable-release.cjs source "$RUNNER_TEMP/official-release.json"
+          existing=$(git ls-remote --tags origin "refs/tags/v$version")
+          [[ -z "$existing" ]] || { echo "Fork v$version already exists; never replace a release tag." >&2; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "upstream_sha=$(git rev-parse 'refs/remotes/upstream/stable^{commit}')" >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/setup-ci-deps
       - run: vp exec playwright install --with-deps chromium
         working-directory: apps/web
       - run: node apps/desktop/scripts/ensure-electron-runtime.mjs
       - name: Check localization and build isolation
         run: |
-          git fetch --no-tags https://github.com/pingdotgg/t3code.git main:refs/remotes/upstream/main
+          node --test .github/scripts/localization-stable-release.test.cjs
           vp run check:changed upstream/main --concurrency 2
           node .github/scripts/localization-build.cjs
-      - id: version
-        shell: bash
-        run: |
-          base=$(node -p "require('./apps/desktop/package.json').version.split('-')[0]")
-          echo "version=$base-nightly.$(date -u +%Y%m%d).$GITHUB_RUN_NUMBER" >> "$GITHUB_OUTPUT"
 
   build:
     needs: verify
@@ -143,9 +154,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir release-publish
-          cp release/*.dmg release/*.zip release/*.blockmap release/nightly-mac.yml release-publish/
+          cp release/*.dmg release/*.zip release/*.blockmap release/latest-mac.yml release-publish/
           if [[ "$BUILD_ARCH" == x64 ]]; then
-            mv release-publish/nightly-mac.yml release-publish/nightly-mac-x64.yml
+            mv release-publish/latest-mac.yml release-publish/latest-mac-x64.yml
           fi
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -163,6 +174,7 @@ jobs:
     env:
       VERSION: ${{ needs.verify.outputs.version }}
       SOURCE_SHA: ${{ github.sha }}
+      UPSTREAM_SHA: ${{ needs.verify.outputs.upstream_sha }}
     steps:
       - name: Check out public source without submodule credential cleanup
         shell: bash
@@ -188,10 +200,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/merge-update-manifests.ts --platform mac release-publish/nightly-mac.yml release-publish/nightly-mac-x64.yml
-          rm release-publish/nightly-mac-x64.yml
+          node scripts/merge-update-manifests.ts --platform mac release-publish/latest-mac.yml release-publish/latest-mac-x64.yml
+          rm release-publish/latest-mac-x64.yml
           cd release-publish
-          sha256sum *.dmg *.zip *.blockmap nightly-mac.yml > SHA256SUMS.txt
+          sha256sum *.dmg *.zip *.blockmap latest-mac.yml > SHA256SUMS.txt
       - name: Create a draft for manual acceptance
         shell: bash
         env:
@@ -199,6 +211,6 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          printf 'English / 简体中文 / 繁體中文 / 日本語 / 한국어\n\nSource: %s\n\nSigned and notarized for Apple Silicon and Intel. Both packaged launch checks passed. Separate app identity and data directories; updates point to qidlek114/t3code.\n\n' "$SOURCE_SHA" > "$RUNNER_TEMP/i18n-release-notes.md"
+          printf 'English / 简体中文 / 繁體中文 / 日本語 / 한국어\n\nBased on official stable [v%s](https://github.com/pingdotgg/t3code/releases/tag/v%s) (%s).\nFork source: %s\n\nSigned and notarized for Apple Silicon and Intel. Both packaged launch checks passed. Separate app identity and data directories; stable updates point to qidlek114/t3code.\n\n' "$VERSION" "$VERSION" "$UPSTREAM_SHA" "$SOURCE_SHA" > "$RUNNER_TEMP/i18n-release-notes.md"
           cat docs/user/localization-preview.md >> "$RUNNER_TEMP/i18n-release-notes.md"
-          gh release create "v$VERSION" release-publish/* --target "$SOURCE_SHA" --draft --prerelease --title "T3 Code I18n $VERSION" --notes-file "$RUNNER_TEMP/i18n-release-notes.md"
+          gh release create "v$VERSION" release-publish/* --target "$SOURCE_SHA" --draft --title "T3 Code I18n $VERSION" --notes-file "$RUNNER_TEMP/i18n-release-notes.md"
